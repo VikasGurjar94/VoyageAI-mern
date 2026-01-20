@@ -1,6 +1,6 @@
 # Project Initiation: VoyageAI (MVP Phase)
-**Date:** Jan 20, 2026  
-**Interviewer:** Vikas  
+**Date:** Jan 19, 2026  
+**Interviewer:** Vikas Gurjar , Manish Gothwal , Shiva Eslavath , Soham Vora 
 **Topic:** Defining the MVP Scope & Core Problems  
 
 ## Raw Meeting Notes
