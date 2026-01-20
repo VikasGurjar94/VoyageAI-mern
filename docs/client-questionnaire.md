@@ -1,52 +1,120 @@
-## C. Developer-Client Requirement Gathering
-*These are the critical questions the Developer  must ask the Client (Project Owner/Professor) before writing a single line of code to avoid "Scope Creep" later.*
+# 📋 Client Questionnaire – Tour & Travel Management System
 
-**1. The "Unique Selling Point" (USP)**
-* *Q:* "There are 100 travel websites (MakeMyTrip, Expedia). Why are we building VoyageAI? What is the *one* thing we do differently?"
-    * *Developer Note:* The answer must be "Personalized AI Itineraries," otherwise the project is generic.
-
-**2. User Persona & Access Control**
-* *Q:* "Who is the primary user? Is it a college student looking for cheap trips, or a luxury traveler?"
-    * *Why ask this:* If it's students, the UI should be vibrant/fun. If luxury, it should be minimal/elegant.
-* *Q:* "Do we need an Admin approval flow for new Users, or can anyone sign up?"
-    * *Current Agreement:* Anyone can sign up as User. Admins are pre-set in DB.
-
-**3. Content Strategy**
-* *Q:* "Where are the images and descriptions coming from? Will the Client provide high-quality assets, or should the Developer use stock images?"
-    * *Agreement:* Developer will use Unsplash URLs for the MVP.
-
-**4. The "AI" Scope (Boundary Setting)**
-* *Q:* "For the AI features, do we want a simple text response (Chatbot style) or a fully interactive UI (Clickable daily plans)?"
-    * *Constraint:* Interactive UI is preferred but requires significantly more development time. We will start with JSON-to-UI rendering.
+This document records the client requirements gathered for the development of the Tour & Travel Management System.
 
 ---
 
-## D. Client-Developer Sprint Review (The Weekly Check-In)
-*These are the hard questions the Client (Evaluator) will ask the Developer (You) during the review meetings. You must have answers ready.*
+## 1. Business & Vision
 
-**1. Progress vs. Timeline**
-* *Q:* "We are in Week 3. Is the Authentication system fully secure? Can I hack it by guessing a URL?"
-    * *Required Answer:* "Yes, we implemented JWT (JSON Web Tokens) and Protected Routes. Even if you guess the URL `/admin`, the backend rejects the request without a token."
+**Q1. What is the main purpose of your Tour & Travel website?**  
+**Answer:**  
+The main purpose of the website is to allow customers to view tour packages, book tours online, and track their booking status easily.
 
-**2. Data Integrity**
-* *Q:* "What happens if two users try to book the last seat on a tour at the exact same second?"
-    * *Developer Answer:* "Currently, we check availability *before* saving. For Phase 2, we will implement database 'Transactions' to prevent overbooking."
-
-**3. The "Mock" Factor**
-* *Q:* "Is this real data? Are these real payments?"
-    * *Developer Answer:* "No, the payment button is a simulation that changes the booking status in the database. No real money is processed in the MVP."
+**Q2. Who are your target customers?**  
+**Answer:**  
+The target customers are local and domestic tourists, including individuals and small groups.
 
 ---
 
-## E. Developer Internal "Pre-Flight" Checklist
-*Questions the Developer must ask themselves before pushing code to GitHub.*
+## 2. Website Scope & Features
 
-**1. Security Check**
-* [ ] Did I remove my `.env` file from Git? (Is `node_modules` in `.gitignore`?)
-* [ ] Are the API keys for Gemini/Mapbox restricted or hidden?
-* [ ] Is the MongoDB password hardcoded? (It should be an environment variable).
+**Q3. What core features do you want in the first version of the website?**  
+**Answer:**  
+User registration and login, viewing tour packages, tour booking, simulated payment, and admin management features.
 
-**2. Usability Check**
-* [ ] Does the site break if I view it on a mobile phone (375px width)?
-* [ ] What happens if the AI API fails or times out? Do I show a "Try again" message or a white screen?
-    * *Fix:* Must implement a "Loading Skeleton" and an Error Boundary.
+**Q4. Is user registration mandatory to use the website?**  
+**Answer:**  
+Yes, users must register and log in to book tours, but viewing tour packages should be allowed without login.
+
+---
+
+## 3. Tour Package Management
+
+**Q5. What information should be included in each tour package?**  
+**Answer:**  
+Tour name, destination, price, duration, description, itinerary, and images.
+
+**Q6. How frequently will tour packages be updated?**  
+**Answer:**  
+Tour packages will be updated monthly or whenever new tours are introduced.
+
+---
+
+## 4. Booking Process
+
+**Q7. How should the tour booking process work?**  
+**Answer:**  
+Users can select a tour, provide booking details, make a simulated payment, and submit the booking request.
+
+**Q8. What booking statuses should be visible to users?**  
+**Answer:**  
+Pending, Confirmed, and Cancelled.
+
+---
+
+## 5. Payment System
+
+**Q9. Should the payment system be real or simulated?**  
+**Answer:**  
+The payment system will be simulated for now for learning and demonstration purposes.
+
+---
+
+## 6. Admin Panel
+
+**Q10. Who will manage the website from the admin side?**  
+**Answer:**  
+A single admin will manage the website initially.
+
+**Q11. What actions should admins be allowed to perform on bookings?**  
+**Answer:**  
+Admins should be able to view, confirm, or cancel bookings.
+
+---
+
+## 7. User Data & Security
+
+**Q12. What user information should be collected and stored?**  
+**Answer:**  
+Name, email address, phone number, and login credentials.
+
+**Q13. What security measures do you expect?**  
+**Answer:**  
+Secure login, password encryption, and restricted access to admin features.
+
+---
+
+## 8. UI / UX Design
+
+**Q14. Do you have any reference websites for design?**  
+**Answer:**  
+No specific reference; a clean and simple design is preferred.
+
+**Q15. Should the website be fully responsive?**  
+**Answer:**  
+Yes, the website should work properly on desktop, tablet, and mobile devices.
+
+---
+
+## 9. Future Enhancements
+
+**Q16. Do you plan to add more features in the future?**  
+**Answer:**  
+Yes, real payment gateway integration, user reviews, discounts, and notification features may be added later.
+
+---
+
+## 10. Timeline & Support
+
+**Q17. What is the expected project completion timeline?**  
+**Answer:**  
+The project should be completed within 6–8 weeks.
+
+**Q18. Do you require post-deployment support?**  
+**Answer:**  
+Yes, basic support and bug fixes will be required after deployment.
+
+---
+
+## Conclusion
+This questionnaire helped in understanding the client’s requirements clearly and served as the foundation for designing and developing the Tour & Travel Management System.
