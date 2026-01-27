@@ -8,7 +8,7 @@ The diagram visually represents interactions between system actors and core func
 
 ## 🖼️ Use Case Diagram
 
-![Use Case Diagram - Tour & Travel Management System](./usecase1.png)
+![Use Case Diagram - Tour & Travel Management System](./useCase2.png)
 
 ---
 
