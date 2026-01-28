@@ -117,37 +117,42 @@ Yes, basic support and bug fixes will be required after deployment.
 ---
 
 ## 11. Performance & Usage
-**Q19. How many users do you expect to use the website initially?**
-**Answer:**
+**Q19. How many users do you expect to use the website initially?**  
+**Answer:**  
 Initially, the website is expected to handle a small number of users (50–100), suitable for a local tour business. The system should be scalable for future growth.
+
 
 ---
 
 ## 12. Booking Constraints
-**Q20. Should there be any limit on the number of bookings per tour package?**
-**Answer:**
+**Q20. Should there be any limit on the number of bookings per tour package?**  
+**Answer:**  
 Yes, each tour package may have a maximum booking limit, which can be managed by the admin.
+
 
 ---
 
 ## 13. Data Management
-**Q21. Should deleted tours or cancelled bookings be permanently removed or kept for records?**
-**Answer:**
+**Q21. Should deleted tours or cancelled bookings be permanently removed or kept for records?**  
+**Answer:**  
 Cancelled bookings and removed tours should be retained in the system for record‑keeping and future reference.
+
 
 ---
 
 ## 14. Error Handling & Feedback
-**Q22. What kind of feedback should users receive after important actions (registration, booking, cancellation)?**
-**Answer:**
+**Q22. What kind of feedback should users receive after important actions (registration, booking, cancellation)?**  
+**Answer:**  
 Users should receive clear on‑screen messages confirming successful actions or showing appropriate error messages.
+
 
 ---
 
 ## 15. Deployment Environment
-**Q23. Where do you plan to host the website initially?**
-**Answer:** 
+**Q23. Where do you plan to host the website initially?**  
+**Answer:**  
 The website will initially be hosted on a local server or college server for demonstration and academic evaluation purposes.
+
 
 ---
 
