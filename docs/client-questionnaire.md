@@ -156,5 +156,45 @@ The website will initially be hosted on a local server or college server for dem
 
 ---
 
+## 16. System Availability & Reliability  
+**Q24. Should the website be available 24/7, or only during specific hours?**  
+**Answer:**  
+The website should be available 24/7, except during maintenance or updates.
+
+
+---
+
+## 17. Data Backup & Recovery  
+**Q25. Do you require any data backup mechanism for user and booking data?**  
+**Answer:**  
+Yes, basic data backup should be maintained to prevent data loss.
+
+
+---
+
+## 18. Search & Navigation  
+**Q26. Should users be able to search or filter tour packages?**  
+**Answer:**  
+Yes, users should be able to search tours by destination or filter them based on price and duration.
+
+
+---
+
+## 19. Booking Modification  
+**Q27. Should users be allowed to cancel or modify their bookings?**  
+**Answer:**  
+Users should be allowed to cancel bookings, but modifications will be handled by the admin.
+
+
+---
+
+## 20. Legal & Policy Information  
+**Q28. Do you want to include policy pages such as Terms & Conditions or Privacy Policy?**  
+**Answer:**  
+Yes, basic Terms & Conditions and Privacy Policy pages should be included for clarity.
+
+
+---
+
 ## Conclusion
 This questionnaire helped in understanding the client’s requirements clearly and served as the foundation for designing and developing the Tour & Travel Management System.
