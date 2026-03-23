@@ -1,24 +1,33 @@
-// server/index.js
-import express from "express";
-import mongoose from "mongoose";
-import cors from "cors";
-import dotenv from "dotenv";
+// server.js
 
-dotenv.config();
+import express from "express";
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
 app.use(express.json());
 
-// Basic Route
-app.get('/', (req, res) => {
-    res.send('Hello from the MERN Server!');
+// Routes
+app.get("/", function (req, res) {
+    res.send("Hello World with ES Modules!");
 });
 
-// Start Server
-app.listen(PORT, () => {
+app.get("/about", function (req, res) {
+    res.send("About Page");
+});
+
+app.post("/data", function (req, res) {
+    const data = req.body;
+
+    res.json({
+        message: "Data received",
+        data: data
+    });
+});
+
+// Server start
+const PORT = 3000;
+
+app.listen(PORT, function () {
     console.log(`Server running on port ${PORT}`);
 });
