@@ -1,33 +1,40 @@
-// server.js
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+require('dotenv').config();
 
-import express from "express";
+const { connectDB, sequelize } = require('./config/db');
 
 const app = express();
 
 // Middleware
+app.use(helmet());
+app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
+app.use(morgan('dev'));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.get("/", function (req, res) {
-    res.send("Hello World with ES Modules!");
+// Static folder for uploaded images
+app.use('/uploads', express.static('uploads'));
+
+// Health check route
+app.get('/', (req, res) => {
+  res.json({ message: 'Tours & Travel API is running' });
 });
 
-app.get("/about", function (req, res) {
-    res.send("About Page");
-});
+// TODO: routes will be added here in Phase 3
 
-app.post("/data", function (req, res) {
-    const data = req.body;
+// Start server
+const PORT = process.env.PORT || 5000;
 
-    res.json({
-        message: "Data received",
-        data: data
-    });
-});
+const start = async () => {
+  await connectDB();
+  // sync: false in dev (we'll handle tables manually via models)
+  await sequelize.sync({ alter: false });
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+};
 
-// Server start
-const PORT = 3000;
-
-app.listen(PORT, function () {
-    console.log(`Server running on port ${PORT}`);
-});
+start();
