@@ -5,6 +5,7 @@ const morgan = require('morgan');
 require('dotenv').config();
 
 const { connectDB, sequelize } = require('./config/db');
+require('./models/index'); 
 
 const app = express();
 
@@ -30,8 +31,8 @@ const PORT = process.env.PORT || 5000;
 
 const start = async () => {
   await connectDB();
-  // sync: false in dev (we'll handle tables manually via models)
-  await sequelize.sync({ alter: false });
+  // This creates all tables automatically if they don't exist
+  await sequelize.sync({ alter: true });
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
