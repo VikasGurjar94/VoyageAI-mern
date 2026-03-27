@@ -1,171 +1,267 @@
-import { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchDashboardStats } from "../../store/slices/adminSlice";
-import Loader from "../../components/common/Loader";
-import { formatPrice, formatDate } from "../../utils/helpers";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FiPackage, FiCalendar, FiClock, FiDollarSign, FiChevronRight } from "react-icons/fi";
+import api from "../../services/api";
+import Loader from "../../components/common/Loader";
+import { formatPrice } from "../../utils/helpers";
 
 const AdminDashboard = () => {
-  const dispatch = useDispatch();
-  const { stats, loading } = useSelector((s) => s.admin);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    dispatch(fetchDashboardStats());
-  }, [dispatch]);
+    const fetchStats = async () => {
+      try {
+        // fetch tours and bookings in parallel
+        const [toursRes, bookingsRes] = await Promise.all([
+          api.get("/tours?limit=100"),
+          api.get("/bookings?limit=100"),
+        ]);
 
-  const statCards = stats
-    ? [
-        {
-          label: "Total Tours",
-          value: stats.totalTours,
-          icon: <FiPackage size={20} />,
-          color: "text-zinc-400",
-        },
-        {
-          label: "Total Bookings",
-          value: stats.totalBookings,
-          icon: <FiCalendar size={20} />,
-          color: "text-zinc-400",
-        },
-        {
-          label: "Pending Booking",
-          value: stats.pendingBookings,
-          icon: <FiClock size={20} />,
-          color: "text-amber-500",
-        },
-        {
-          label: "Total Revenue",
-          value: formatPrice(stats.totalRevenue),
-          icon: <FiDollarSign size={20} />,
-          color: "text-emerald-500",
-        },
-      ]
-    : [];
+        const tours = toursRes.data.tours;
+        const bookings = bookingsRes.data.bookings;
 
-  const statusCls = {
-    pending:   "bg-amber-500/10 text-amber-500 border-amber-500/20",
-    confirmed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    cancelled: "bg-rose-500/10 text-rose-400 border-rose-500/20",
-  };
+        // calculate stats from the data
+        const totalRevenue = bookings
+          .filter((b) => b.status === "confirmed")
+          .reduce((sum, b) => sum + parseFloat(b.total_price), 0);
+
+        setStats({
+          totalTours: tours.length,
+          totalBookings: bookings.length,
+          totalRevenue,
+          pendingBookings: bookings.filter((b) => b.status === "pending")
+            .length,
+          confirmedBookings: bookings.filter((b) => b.status === "confirmed")
+            .length,
+          cancelledBookings: bookings.filter((b) => b.status === "cancelled")
+            .length,
+          recentBookings: bookings.slice(0, 5),
+        });
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  if (loading) return <Loader message="Loading dashboard..." />;
 
   return (
-    <div className="bg-[#09090b] min-h-screen pt-24 pb-20">
-      <div className="max-w-6xl mx-auto px-6">
-        
-        {/* Header */}
-        <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">System Overview</h1>
-            <p className="text-zinc-400 mt-2 text-base">Key metrics and recent activity across your platform</p>
+    <div style={styles.page}>
+      <div style={styles.header}>
+        <div>
+          <h1 style={styles.heading}>Admin Dashboard</h1>
+          <p style={styles.sub}>Overview of your tours and bookings</p>
+        </div>
+        <div style={styles.headerActions}>
+          <Link to="/admin/tours" style={styles.actionBtn}>
+            Manage Tours
+          </Link>
+          <Link to="/admin/bookings" style={styles.actionBtnOutline}>
+            Manage Bookings
+          </Link>
+        </div>
+      </div>
+
+      {/* Stats cards */}
+      <div style={styles.statsGrid}>
+        {[
+          {
+            label: "Total Tours",
+            value: stats.totalTours,
+            color: "#3b82f6",
+            bg: "#eff6ff",
+          },
+          {
+            label: "Total Bookings",
+            value: stats.totalBookings,
+            color: "#8b5cf6",
+            bg: "#f5f3ff",
+          },
+          {
+            label: "Total Revenue",
+            value: formatPrice(stats.totalRevenue),
+            color: "#10b981",
+            bg: "#ecfdf5",
+          },
+          {
+            label: "Pending",
+            value: stats.pendingBookings,
+            color: "#f59e0b",
+            bg: "#fffbeb",
+          },
+          {
+            label: "Confirmed",
+            value: stats.confirmedBookings,
+            color: "#10b981",
+            bg: "#ecfdf5",
+          },
+          {
+            label: "Cancelled",
+            value: stats.cancelledBookings,
+            color: "#ef4444",
+            bg: "#fef2f2",
+          },
+        ].map(({ label, value, color, bg }) => (
+          <div key={label} style={{ ...styles.statCard, background: bg }}>
+            <span style={{ ...styles.statValue, color }}>{value}</span>
+            <span style={styles.statLabel}>{label}</span>
           </div>
+        ))}
+      </div>
+
+      {/* Recent bookings table */}
+      <div style={styles.tableCard}>
+        <div style={styles.tableHeader}>
+          <h2 style={styles.tableTitle}>Recent Bookings</h2>
+          <Link to="/admin/bookings" style={styles.viewAll}>
+            View all →
+          </Link>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-20"><Loader /></div>
-        ) : (
-          <div>
-            {/* Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-              {statCards.map(({ label, value, icon, color }) => (
-                <div
-                  key={label}
-                  className="bg-[#0a0a0a] rounded-2xl p-6 border border-white/5"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-zinc-400 text-sm font-medium">{label}</p>
-                    <div className={color}>{icon}</div>
-                  </div>
-                  <p className="text-3xl font-bold text-white tracking-tight">{value}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Quick Links */}
-            <h2 className="text-lg font-bold text-white mb-6">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-              <Link
-                to="/admin/tours"
-                className="bg-[#0a0a0a] flex items-center justify-between rounded-2xl p-6 hover:bg-zinc-900 border border-white/5 transition-colors group"
-              >
-                <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 rounded-full bg-zinc-900 flex items-center justify-center border border-zinc-800">
-                    <FiPackage size={22} className="text-zinc-300" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-semibold text-white mb-1">Manage Tours</h3>
-                    <p className="text-zinc-500 text-sm">Add or edit travel packages</p>
-                  </div>
-                </div>
-                <FiChevronRight className="text-zinc-600 group-hover:text-white transition-colors" />
-              </Link>
-              
-              <Link
-                to="/admin/bookings"
-                className="bg-[#0a0a0a] flex items-center justify-between rounded-2xl p-6 hover:bg-zinc-900 border border-white/5 transition-colors group"
-              >
-                <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 rounded-full bg-zinc-900 flex items-center justify-center border border-zinc-800">
-                    <FiCalendar size={22} className="text-zinc-300" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-semibold text-white mb-1">Manage Bookings</h3>
-                    <p className="text-zinc-500 text-sm">Review customer reservations</p>
-                  </div>
-                </div>
-                <FiChevronRight className="text-zinc-600 group-hover:text-white transition-colors" />
-              </Link>
-            </div>
-
-            {/* Recent Bookings Table */}
-            {stats?.recentBookings?.length > 0 && (
-              <div className="bg-[#0a0a0a] rounded-2xl border border-white/5 overflow-hidden">
-                <div className="p-6 border-b border-white/5">
-                  <h2 className="text-lg font-bold text-white">Recent Transactions</h2>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left whitespace-nowrap">
-                    <thead className="text-[11px] uppercase tracking-wider text-zinc-500 bg-zinc-900/50 border-b border-white/5">
-                      <tr>
-                        <th className="px-6 py-4 font-semibold text-left">Customer</th>
-                        <th className="px-6 py-4 font-semibold text-left">Tour</th>
-                        <th className="px-6 py-4 font-semibold text-left">Travel Date</th>
-                        <th className="px-6 py-4 font-semibold text-right">Amount</th>
-                        <th className="px-6 py-4 font-semibold text-center">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {stats.recentBookings.map((b) => (
-                        <tr key={b.id} className="hover:bg-zinc-900/50 transition-colors">
-                          <td className="px-6 py-4">
-                            <span className="font-medium text-white">{b.User?.name || "—"}</span>
-                          </td>
-                          <td className="px-6 py-4 text-zinc-400">
-                            {b.Tour?.title || "—"}
-                          </td>
-                          <td className="px-6 py-4 text-zinc-400">
-                            {formatDate(b.travel_date)}
-                          </td>
-                          <td className="px-6 py-4 font-medium text-white text-right">
-                            {formatPrice(b.total_price)}
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <span className={`text-[10px] uppercase tracking-wider font-bold px-2.5 py-1 rounded inline-block border ${statusCls[b.status] || "bg-zinc-800 text-zinc-400 border-zinc-700"}`}>
-                              {b.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        <table style={styles.table}>
+          <thead>
+            <tr style={styles.thead}>
+              <th style={styles.th}>Customer</th>
+              <th style={styles.th}>Tour</th>
+              <th style={styles.th}>Date</th>
+              <th style={styles.th}>Amount</th>
+              <th style={styles.th}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stats.recentBookings.map((b) => (
+              <tr key={b.id} style={styles.tr}>
+                <td style={styles.td}>{b.User?.name}</td>
+                <td style={styles.td}>{b.Tour?.title}</td>
+                <td style={styles.td}>
+                  {new Date(b.travel_date).toLocaleDateString("en-IN")}
+                </td>
+                <td style={styles.td}>{formatPrice(b.total_price)}</td>
+                <td style={styles.td}>
+                  <span
+                    style={{
+                      ...styles.badge,
+                      background: statusBg[b.status],
+                      color: statusColor[b.status],
+                    }}
+                  >
+                    {b.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
+};
+
+const statusBg = {
+  pending: "#fffbeb",
+  confirmed: "#ecfdf5",
+  cancelled: "#fef2f2",
+};
+const statusColor = {
+  pending: "#d97706",
+  confirmed: "#059669",
+  cancelled: "#dc2626",
+};
+
+const styles = {
+  page: { maxWidth: "1200px", margin: "0 auto", padding: "40px 20px" },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "32px",
+    flexWrap: "wrap",
+    gap: "16px",
+  },
+  heading: { fontSize: "28px", fontWeight: "700", color: "#111827" },
+  sub: { color: "#6b7280", fontSize: "14px", marginTop: "4px" },
+  headerActions: { display: "flex", gap: "12px" },
+  actionBtn: {
+    background: "#e94560",
+    color: "#fff",
+    padding: "10px 20px",
+    borderRadius: "8px",
+    textDecoration: "none",
+    fontSize: "14px",
+    fontWeight: "600",
+  },
+  actionBtnOutline: {
+    border: "1px solid #e94560",
+    color: "#e94560",
+    padding: "10px 20px",
+    borderRadius: "8px",
+    textDecoration: "none",
+    fontSize: "14px",
+    fontWeight: "600",
+  },
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+    gap: "16px",
+    marginBottom: "32px",
+  },
+  statCard: { borderRadius: "12px", padding: "20px", textAlign: "center" },
+  statValue: {
+    display: "block",
+    fontSize: "28px",
+    fontWeight: "800",
+    marginBottom: "6px",
+  },
+  statLabel: {
+    display: "block",
+    fontSize: "13px",
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  tableCard: {
+    background: "#fff",
+    borderRadius: "16px",
+    padding: "24px",
+    boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+  },
+  tableHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "20px",
+  },
+  tableTitle: { fontSize: "18px", fontWeight: "700", color: "#111827" },
+  viewAll: {
+    color: "#e94560",
+    textDecoration: "none",
+    fontSize: "14px",
+    fontWeight: "500",
+  },
+  table: { width: "100%", borderCollapse: "collapse" },
+  thead: { background: "#f9fafb" },
+  th: {
+    padding: "12px 16px",
+    textAlign: "left",
+    fontSize: "12px",
+    fontWeight: "600",
+    color: "#6b7280",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    borderBottom: "1px solid #f3f4f6",
+  },
+  tr: { borderBottom: "1px solid #f9fafb" },
+  td: { padding: "14px 16px", fontSize: "14px", color: "#374151" },
+  badge: {
+    padding: "3px 10px",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: "600",
+    textTransform: "capitalize",
+  },
 };
 
 export default AdminDashboard;

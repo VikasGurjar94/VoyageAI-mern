@@ -38,58 +38,115 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-[#09090b] px-4 py-12">
-      <div className="bg-[#0a0a0a] p-8 sm:p-10 rounded-2xl w-full max-w-[420px] border border-white/5">
-        <h2 className="text-2xl font-bold text-white mb-2">Welcome back</h2>
-        <p className="text-zinc-500 mb-8 text-sm">Sign in to your account</p>
+    <div style={styles.page}>
+      <div style={styles.card}>
+        <h2 style={styles.title}>Welcome back</h2>
+        <p style={styles.sub}>Sign in to your account</p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-zinc-400">Email</label>
+        <form onSubmit={handleSubmit} style={styles.form}>
+          <div style={styles.field}>
+            <label style={styles.label}>Email</label>
             <input
               type="email"
               name="email"
               value={form.email}
               onChange={handleChange}
-              placeholder="name@example.com"
-              className="w-full bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-600 rounded-xl px-4 py-3 outline-none focus:border-zinc-500 transition-colors"
+              placeholder="vikas@gmail.com"
+              style={styles.input}
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-zinc-400">Password</label>
+          <div style={styles.field}>
+            <label style={styles.label}>Password</label>
             <input
               type="password"
               name="password"
               value={form.password}
               onChange={handleChange}
               placeholder="••••••••"
-              className="w-full bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-600 rounded-xl px-4 py-3 outline-none focus:border-zinc-500 transition-colors"
+              style={styles.input}
             />
           </div>
 
           <button
             type="submit"
+            style={loading ? styles.btnDisabled : styles.btn}
             disabled={loading}
-            className={`mt-2 w-full py-3.5 rounded-xl text-sm font-semibold transition-colors ${
-              loading
-                ? "bg-zinc-800 text-zinc-400 cursor-not-allowed"
-                : "bg-white text-black hover:bg-zinc-200"
-            }`}
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
-        <p className="text-center mt-6 text-zinc-500 text-sm">
+        <p style={styles.footer}>
           Don't have an account?{" "}
-          <Link to="/register" className="text-white font-medium hover:underline transition-all">
+          <Link to="/register" style={styles.footerLink}>
             Register
           </Link>
         </p>
       </div>
     </div>
   );
+};
+
+const styles = {
+  page: {
+    minHeight: "calc(100vh - 64px)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#f3f4f6",
+  },
+  card: {
+    background: "#fff",
+    padding: "40px",
+    borderRadius: "12px",
+    width: "100%",
+    maxWidth: "420px",
+    boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+  },
+  title: {
+    fontSize: "26px",
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: "6px",
+  },
+  sub: { color: "#6b7280", marginBottom: "28px", fontSize: "14px" },
+  form: { display: "flex", flexDirection: "column", gap: "18px" },
+  field: { display: "flex", flexDirection: "column", gap: "6px" },
+  label: { fontSize: "14px", fontWeight: "500", color: "#374151" },
+  input: {
+    padding: "10px 14px",
+    border: "1px solid #d1d5db",
+    borderRadius: "8px",
+    fontSize: "15px",
+    outline: "none",
+  },
+  btn: {
+    padding: "12px",
+    background: "#e94560",
+    color: "#fff",
+    border: "none",
+    borderRadius: "8px",
+    fontSize: "16px",
+    fontWeight: "600",
+    cursor: "pointer",
+  },
+  btnDisabled: {
+    padding: "12px",
+    background: "#f9a8b4",
+    color: "#fff",
+    border: "none",
+    borderRadius: "8px",
+    fontSize: "16px",
+    cursor: "not-allowed",
+  },
+  footer: {
+    textAlign: "center",
+    marginTop: "20px",
+    color: "#6b7280",
+    fontSize: "14px",
+  },
+  footerLink: { color: "#e94560", fontWeight: "500" },
 };
 
 export default LoginPage;

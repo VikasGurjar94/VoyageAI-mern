@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom";
-import { FiMapPin, FiClock, FiUsers, FiStar } from "react-icons/fi";
+import { FiMapPin, FiClock, FiUsers } from "react-icons/fi";
 import { formatPrice, getImageUrl } from "../../utils/helpers";
 
 const difficultyConfig = {
-  easy:     { label: "Easy",     bg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-  moderate: { label: "Moderate", bg: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  hard:     { label: "Hard",     bg: "bg-rose-500/10 text-rose-400 border-rose-500/20" },
+  easy:     { label: "Easy",    color: "text-[#e9c176]", bg: "bg-[#e9c176]/10" },
+  moderate: { label: "Moderate",  color: "text-[#d1c5b4]", bg: "bg-[#4e4639]/20" },
+  hard:     { label: "Hard", color: "text-[#ffb4ab]", bg: "bg-[#ffb4ab]/10" },
 };
 
 const TourCard = ({ tour }) => {
@@ -19,72 +19,79 @@ const TourCard = ({ tour }) => {
 
   const diff = difficultyConfig[tour.difficulty] || {
     label: tour.difficulty,
-    bg: "bg-zinc-800 text-zinc-300 border-zinc-700",
+    color: "text-[#d1c5b4]",
+    bg: "bg-[#4e4639]/20"
   };
 
   return (
     <Link 
       to={`/tours/${tour.id}`}
-      className="bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden group flex flex-col hover:border-white/10 transition-all duration-300 active:scale-[0.98]"
+      className="bg-[#1c1b1c] flex flex-col group transition-all duration-500 hover:-translate-y-2 relative overflow-hidden rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
     >
-      <div className="relative overflow-hidden h-56 bg-zinc-900 line-clamp-2">
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/20 to-transparent z-10"></div>
+      {/* Ghost Border */}
+      <div className="absolute inset-0 border border-[#4e4639]/20 rounded-2xl pointer-events-none transition-colors duration-500 group-hover:border-[#e9c176]/30"></div>
+
+      <div className="relative overflow-hidden h-[22rem] bg-[#0e0e0f]">
+        <div className="absolute inset-0 bg-gradient-to-t from-[#1c1b1c] via-[#1c1b1c]/10 to-transparent z-10"></div>
         
         <img
           src={getImageUrl(tour.image)}
           alt={tour.title}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-[1.5s] ease-out group-hover:scale-110 opacity-90 group-hover:opacity-100"
           onError={(e) => {
             e.target.src = "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&q=80";
           }}
         />
         
-        <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-20">
-          <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded border backdrop-blur-sm ${diff.bg}`}>
+        <div className="absolute top-6 left-6 right-6 flex justify-between items-start z-20">
+          <span className={`text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1.5 backdrop-blur-md rounded-full ${diff.bg} ${diff.color}`}>
             {diff.label}
           </span>
           
           {avgRating && (
-            <span className="bg-[#09090b]/80 backdrop-blur-sm border border-white/10 text-white text-[11px] font-semibold px-2 py-1 rounded flex items-center gap-1">
-              <FiStar className="text-zinc-400 fill-zinc-400" size={10} />
-              {avgRating}
+            <span className="bg-[#131314]/80 backdrop-blur-md border border-[#4e4639]/30 text-[#e9c176] text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+              ★ {avgRating}
             </span>
           )}
         </div>
       </div>
 
-      <div className="p-5 flex flex-col flex-1 relative z-20 -mt-8">
-        <h3 className="text-lg font-bold text-white mb-4 line-clamp-2 group-hover:text-zinc-300 transition-colors">
+      <div className="p-8 flex flex-col flex-1 relative z-20 -mt-16 bg-gradient-to-t from-[#1c1b1c] to-transparent">
+        <h3 className="text-2xl font-serif text-[#e5e2e3] mb-6 line-clamp-2 tracking-[0.02em] group-hover:text-[#e9c176] transition-colors duration-500">
           {tour.title}
         </h3>
 
-        <div className="flex flex-col gap-3 mb-6 flex-1">
-          <div className="flex items-center gap-2.5 text-zinc-400 text-sm">
-            <FiMapPin size={15} className="text-zinc-500" />
+        <div className="flex flex-col gap-4 mb-8 flex-1">
+          <div className="flex items-center gap-4 text-[#d1c5b4] text-sm font-light">
+            <div className="w-8 h-8 rounded-full bg-[#131314] flex items-center justify-center border border-[#4e4639]/30 text-[#e9c176]">
+              <FiMapPin size={14} />
+            </div>
             <span className="truncate">{tour.destination}</span>
           </div>
-          <div className="flex items-center gap-2.5 text-zinc-400 text-sm">
-            <FiClock size={15} className="text-zinc-500" />
+          <div className="flex items-center gap-4 text-[#d1c5b4] text-sm font-light">
+            <div className="w-8 h-8 rounded-full bg-[#131314] flex items-center justify-center border border-[#4e4639]/30 text-[#e9c176]">
+              <FiClock size={14} />
+            </div>
             <span>{tour.duration_days} Days</span>
           </div>
-          <div className="flex items-center gap-2.5 text-zinc-400 text-sm">
-            <FiUsers size={15} className="text-zinc-500" />
-            <span>Up to {tour.max_group_size} travelers</span>
+          <div className="flex items-center gap-4 text-[#d1c5b4] text-sm font-light">
+            <div className="w-8 h-8 rounded-full bg-[#131314] flex items-center justify-center border border-[#4e4639]/30 text-[#e9c176]">
+              <FiUsers size={14} />
+            </div>
+            <span>Max group size: {tour.max_group_size}</span>
           </div>
         </div>
 
-        <div className="pt-4 border-t border-white/5 flex items-end justify-between mt-auto">
+        <div className="pt-6 flex items-end justify-between mt-auto">
           <div>
-            <p className="text-[11px] uppercase tracking-wider text-zinc-500 mb-1">From</p>
-            <span className="text-xl font-bold text-white">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-[#d1c5b4]/70 mb-2">Price</p>
+            <span className="text-2xl font-serif text-[#e9c176] tracking-wide">
               {formatPrice(tour.price)}
             </span>
           </div>
-          <div className="text-xs font-semibold text-zinc-400 group-hover:text-white transition-colors flex items-center gap-1 pb-1">
+          <div className="text-sm font-semibold text-[#d1c5b4] group-hover:text-[#e9c176] transition-colors flex items-center gap-2 pb-1 border-b border-transparent group-hover:border-[#e9c176]">
             Details
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="group-hover:translate-x-0.5 transition-transform" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12H19M19 12L12 5M19 12L12 19"/>
-            </svg>
+            <span className="group-hover:translate-x-1 transition-transform">→</span>
           </div>
         </div>
       </div>

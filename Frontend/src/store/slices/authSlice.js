@@ -50,6 +50,18 @@ export const getMe = createAsyncThunk(
     }
   },
 );
+// added in phase 4 step 21
+export const updatePassword = createAsyncThunk(
+  "auth/updatePassword",
+  async (passwords, { rejectWithValue }) => {
+    try {
+      const { data } = await api.patch("/auth/update-password", passwords);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Update failed");
+    }
+  },
+);
 
 // ── SLICE ──────────────────────────────────────────────────
 const authSlice = createSlice({
@@ -80,6 +92,17 @@ const authSlice = createSlice({
       .addCase(register.pending, (state) => {
         state.loading = true;
         state.error = null;
+      })
+      .addCase(updatePassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updatePassword.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(updatePassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
       .addCase(register.fulfilled, (state, action) => {
         state.loading = false;

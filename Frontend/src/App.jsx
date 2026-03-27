@@ -1,3 +1,4 @@
+import AdminLayout from "./components/common/AdminLayout";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -60,7 +61,9 @@ function App() {
           path="/admin"
           element={
             <ProtectedRoute adminOnly>
-              <AdminDashboard />
+              <AdminLayout>
+                <AdminDashboard />
+              </AdminLayout>
             </ProtectedRoute>
           }
         />
@@ -68,7 +71,9 @@ function App() {
           path="/admin/tours"
           element={
             <ProtectedRoute adminOnly>
-              <ManageTours />
+              <AdminLayout>
+                <ManageTours />
+              </AdminLayout>
             </ProtectedRoute>
           }
         />
@@ -76,7 +81,9 @@ function App() {
           path="/admin/bookings"
           element={
             <ProtectedRoute adminOnly>
-              <ManageBookings />
+              <AdminLayout>
+                <ManageBookings />
+              </AdminLayout>
             </ProtectedRoute>
           }
         />

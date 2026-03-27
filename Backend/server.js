@@ -12,6 +12,7 @@ const authRoutes    = require('./routes/authRoutes');
 const tourRoutes    = require('./routes/tourRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const reviewRoutes  = require('./routes/reviewRoutes');
+const userRoutes    = require('./routes/userRoutes');
 
 // error handler
 const errorHandler = require('./middleware/errorHandler');
@@ -30,6 +31,7 @@ app.use('/uploads', express.static('uploads'));
 app.use('/api/auth',     authRoutes);
 app.use('/api/tours',    tourRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/users',    userRoutes);
 
 // nested route — reviews live under tours
 // /api/tours/:tourId/reviews

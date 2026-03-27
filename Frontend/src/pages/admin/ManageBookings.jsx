@@ -1,132 +1,343 @@
-import { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import {
-  fetchAllBookingsAdmin,
-  updateBookingStatusAdmin,
-} from "../../store/slices/adminSlice";
+import { useEffect, useState } from "react";
+import api from "../../services/api";
+import { toast } from "react-toastify";
 import Loader from "../../components/common/Loader";
 import { formatPrice, formatDate } from "../../utils/helpers";
-import { toast } from "react-toastify";
-import { FiFilter } from "react-icons/fi";
-
-const statusCls = {
-  pending:   "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  confirmed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  cancelled: "bg-rose-500/10 text-rose-400 border-rose-500/20",
-};
 
 const ManageBookings = () => {
-  const dispatch = useDispatch();
-  const { bookings, loading, total } = useSelector((s) => s.admin);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [updating, setUpdating] = useState(null); // id being updated
+
+  const fetchBookings = async () => {
+    setLoading(true);
+    try {
+      const params = { page, limit: 10 };
+      if (statusFilter) params.status = statusFilter;
+      const { data } = await api.get("/bookings", { params });
+      setBookings(data.bookings);
+      setTotalPages(data.pages);
+    } catch (err) {
+      toast.error("Failed to fetch bookings");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    dispatch(fetchAllBookingsAdmin({ limit: 100 }));
-  }, [dispatch]);
+    fetchBookings();
+  }, [page, statusFilter]);
 
-  const handleStatusChange = async (id, status) => {
+  const handleStatusUpdate = async (id, newStatus) => {
+    setUpdating(id);
     try {
-      await dispatch(updateBookingStatusAdmin({ id, status })).unwrap();
-      toast.success(`Booking marked as ${status}`);
+      await api.patch(`/bookings/${id}/status`, { status: newStatus });
+      toast.success(`Booking marked as ${newStatus}`);
+      // update locally without refetching
+      setBookings((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b)),
+      );
     } catch (err) {
-      toast.error(err || "Failed to update status");
+      toast.error("Failed to update status");
+    } finally {
+      setUpdating(null);
     }
   };
 
   return (
-    <div className="bg-[#09090b] min-h-screen pt-24 pb-20">
-      <div className="max-w-7xl mx-auto px-6">
-        
-        {/* Header */}
-        <div className="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
-          <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">Manage Bookings</h1>
-            <p className="text-zinc-400 mt-2 text-sm">{total} total reservations across the platform</p>
-          </div>
-          
-          <div className="flex items-center gap-2 bg-[#0a0a0a] border border-zinc-800 rounded-lg px-4 py-2 w-fit">
-            <FiFilter className="text-zinc-500" size={14} />
-            <select className="bg-transparent text-sm text-zinc-300 outline-none border-none cursor-pointer">
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
+    <div style={styles.page}>
+      {/* Header */}
+      <div style={styles.header}>
+        <div>
+          <h1 style={styles.heading}>Manage Bookings</h1>
+          <p style={styles.sub}>Review and update all booking statuses</p>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-20"><Loader /></div>
-        ) : bookings.length === 0 ? (
-          <div className="bg-[#0a0a0a] rounded-2xl p-16 text-center border border-white/5">
-            <p className="text-zinc-500 text-sm">No bookings found system-wide.</p>
-          </div>
-        ) : (
-          <div className="bg-[#0a0a0a] rounded-2xl border border-white/5 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left whitespace-nowrap">
-                <thead className="text-[11px] uppercase tracking-wider font-semibold text-zinc-500 bg-zinc-900/50 border-b border-white/5">
+        {/* Status filter */}
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setPage(1);
+          }}
+          style={styles.filterSelect}
+        >
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <Loader />
+      ) : (
+        <>
+          <div style={styles.tableCard}>
+            <table style={styles.table}>
+              <thead>
+                <tr style={styles.thead}>
+                  <th style={styles.th}>ID</th>
+                  <th style={styles.th}>Customer</th>
+                  <th style={styles.th}>Tour</th>
+                  <th style={styles.th}>Travel Date</th>
+                  <th style={styles.th}>People</th>
+                  <th style={styles.th}>Total</th>
+                  <th style={styles.th}>Status</th>
+                  <th style={styles.th}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bookings.length === 0 ? (
                   <tr>
-                    <th className="px-6 py-4 text-left">Order ID</th>
-                    <th className="px-6 py-4 text-left">Customer</th>
-                    <th className="px-6 py-4 text-left">Tour Selection</th>
-                    <th className="px-6 py-4 text-left">Travel Date</th>
-                    <th className="px-6 py-4 text-center">Pax</th>
-                    <th className="px-6 py-4 text-right">Revenue</th>
-                    <th className="px-6 py-4 text-center">Status</th>
-                    <th className="px-6 py-4 text-right">Action</th>
+                    <td colSpan={8} style={styles.empty}>
+                      No bookings found.
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {bookings.map((b) => (
-                    <tr key={b.id} className="hover:bg-zinc-900/50 transition-colors">
-                      <td className="px-6 py-4 text-zinc-500 font-mono text-xs">#{b.id.substring(0,8)}</td>
-                      <td className="px-6 py-4">
-                        <p className="font-medium text-white">{b.User?.name || "—"}</p>
-                        <p className="text-zinc-500 text-xs mt-0.5">{b.User?.email}</p>
+                ) : (
+                  bookings.map((b) => (
+                    <tr key={b.id} style={styles.tr}>
+                      <td style={styles.td}>
+                        <span style={styles.idBadge}>#{b.id}</span>
                       </td>
-                      <td className="px-6 py-4 text-zinc-400 max-w-[200px] truncate">
-                        {b.Tour?.title || "—"}
+                      <td style={styles.td}>
+                        <p style={styles.customerName}>{b.User?.name}</p>
+                        <p style={styles.customerEmail}>{b.User?.email}</p>
                       </td>
-                      <td className="px-6 py-4 text-zinc-400">
-                        {formatDate(b.travel_date)}
+                      <td style={styles.td}>
+                        <p style={styles.tourName}>{b.Tour?.title}</p>
+                        <p style={styles.tourDest}>📍 {b.Tour?.destination}</p>
                       </td>
-                      <td className="px-6 py-4 text-center">
-                         <span className="text-zinc-300 text-xs">{b.num_people}</span>
+                      <td style={styles.td}>{formatDate(b.travel_date)}</td>
+                      <td style={styles.td}>{b.num_people}</td>
+                      <td style={styles.td}>
+                        <strong>{formatPrice(b.total_price)}</strong>
                       </td>
-                      <td className="px-6 py-4 font-medium text-white text-right">
-                        {formatPrice(b.total_price)}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`text-[10px] uppercase tracking-wider font-bold px-2.5 py-1 rounded inline-block border ${statusCls[b.status] || "bg-zinc-800 text-zinc-400 border-white/5"}`}>
+                      <td style={styles.td}>
+                        <span
+                          style={{
+                            ...styles.statusBadge,
+                            ...statusStyles[b.status],
+                          }}
+                        >
                           {b.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="inline-block relative">
-                           <select
-                              value={b.status}
-                              onChange={(e) => handleStatusChange(b.id, e.target.value)}
-                              className="appearance-none bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs rounded-lg pl-3 pr-8 py-2 outline-none focus:border-zinc-500 transition-colors cursor-pointer"
+                      <td style={styles.td}>
+                        {b.status === "pending" && (
+                          <div style={styles.actionBtns}>
+                            <button
+                              onClick={() =>
+                                handleStatusUpdate(b.id, "confirmed")
+                              }
+                              disabled={updating === b.id}
+                              style={styles.confirmBtn}
                             >
-                              <option value="pending" className="bg-[#18181b]">Pending</option>
-                              <option value="confirmed" className="bg-[#18181b]">Confirmed</option>
-                              <option value="cancelled" className="bg-[#18181b]">Cancelled</option>
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-500">
-                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                            </div>
-                        </div>
+                              {updating === b.id ? "..." : "Confirm"}
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleStatusUpdate(b.id, "cancelled")
+                              }
+                              disabled={updating === b.id}
+                              style={styles.cancelBtn}
+                            >
+                              {updating === b.id ? "..." : "Cancel"}
+                            </button>
+                          </div>
+                        )}
+                        {b.status === "confirmed" && (
+                          <button
+                            onClick={() =>
+                              handleStatusUpdate(b.id, "cancelled")
+                            }
+                            disabled={updating === b.id}
+                            style={styles.cancelBtn}
+                          >
+                            {updating === b.id ? "..." : "Cancel"}
+                          </button>
+                        )}
+                        {b.status === "cancelled" && (
+                          <span style={styles.noAction}>—</span>
+                        )}
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div style={styles.pagination}>
+              <button
+                onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                disabled={page === 1}
+                style={page === 1 ? styles.pageDisabled : styles.pageBtn}
+              >
+                ← Prev
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  style={p === page ? styles.pageActive : styles.pageBtn}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                disabled={page === totalPages}
+                style={
+                  page === totalPages ? styles.pageDisabled : styles.pageBtn
+                }
+              >
+                Next →
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
+};
+
+const statusStyles = {
+  pending: { background: "#fffbeb", color: "#d97706" },
+  confirmed: { background: "#ecfdf5", color: "#059669" },
+  cancelled: { background: "#fef2f2", color: "#dc2626" },
+};
+
+const styles = {
+  page: { maxWidth: "1200px", margin: "0 auto", padding: "40px 20px" },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "28px",
+    flexWrap: "wrap",
+    gap: "16px",
+  },
+  heading: { fontSize: "28px", fontWeight: "700", color: "#111827" },
+  sub: { color: "#6b7280", fontSize: "14px", marginTop: "4px" },
+  filterSelect: {
+    padding: "10px 16px",
+    border: "1px solid #d1d5db",
+    borderRadius: "8px",
+    fontSize: "14px",
+    outline: "none",
+    minWidth: "160px",
+  },
+  tableCard: {
+    background: "#fff",
+    borderRadius: "16px",
+    overflow: "hidden",
+    boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+    overflowX: "auto",
+  },
+  table: { width: "100%", borderCollapse: "collapse", minWidth: "800px" },
+  thead: { background: "#f9fafb" },
+  th: {
+    padding: "14px 16px",
+    textAlign: "left",
+    fontSize: "12px",
+    fontWeight: "600",
+    color: "#6b7280",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    borderBottom: "1px solid #f3f4f6",
+  },
+  tr: { borderBottom: "1px solid #f9fafb" },
+  td: {
+    padding: "14px 16px",
+    fontSize: "14px",
+    color: "#374151",
+    verticalAlign: "middle",
+  },
+  empty: {
+    textAlign: "center",
+    padding: "48px",
+    color: "#9ca3af",
+    fontSize: "15px",
+  },
+  idBadge: {
+    background: "#f3f4f6",
+    color: "#6b7280",
+    padding: "3px 8px",
+    borderRadius: "6px",
+    fontSize: "12px",
+    fontWeight: "600",
+  },
+  customerName: { fontWeight: "600", color: "#111827", marginBottom: "2px" },
+  customerEmail: { fontSize: "12px", color: "#9ca3af" },
+  tourName: { fontWeight: "600", color: "#111827", marginBottom: "2px" },
+  tourDest: { fontSize: "12px", color: "#9ca3af" },
+  statusBadge: {
+    padding: "4px 12px",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: "600",
+    textTransform: "capitalize",
+  },
+  actionBtns: { display: "flex", gap: "8px" },
+  confirmBtn: {
+    background: "#ecfdf5",
+    color: "#059669",
+    border: "none",
+    padding: "6px 12px",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontSize: "13px",
+    fontWeight: "500",
+  },
+  cancelBtn: {
+    background: "#fef2f2",
+    color: "#dc2626",
+    border: "none",
+    padding: "6px 12px",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontSize: "13px",
+    fontWeight: "500",
+  },
+  noAction: { color: "#d1d5db", fontSize: "16px" },
+  pagination: {
+    display: "flex",
+    justifyContent: "center",
+    gap: "8px",
+    marginTop: "28px",
+  },
+  pageBtn: {
+    padding: "8px 14px",
+    border: "1px solid #d1d5db",
+    borderRadius: "6px",
+    background: "#fff",
+    cursor: "pointer",
+    fontSize: "13px",
+  },
+  pageActive: {
+    padding: "8px 14px",
+    border: "1px solid #e94560",
+    borderRadius: "6px",
+    background: "#e94560",
+    color: "#fff",
+    cursor: "pointer",
+    fontSize: "13px",
+  },
+  pageDisabled: {
+    padding: "8px 14px",
+    border: "1px solid #f3f4f6",
+    borderRadius: "6px",
+    background: "#f9fafb",
+    color: "#d1d5db",
+    cursor: "not-allowed",
+    fontSize: "13px",
+  },
 };
 
 export default ManageBookings;

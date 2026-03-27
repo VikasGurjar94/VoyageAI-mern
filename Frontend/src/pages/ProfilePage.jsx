@@ -1,233 +1,234 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getMe, clearError } from "../store/slices/authSlice";
+import { updatePassword, clearError } from "../store/slices/authSlice";
 import { toast } from "react-toastify";
 import api from "../services/api";
-import { FiUser, FiMail, FiPhone, FiLock, FiSave, FiSettings } from "react-icons/fi";
 
 const ProfilePage = () => {
   const dispatch = useDispatch();
-  const { user, loading } = useSelector((s) => s.auth);
+  const { user, loading, error } = useSelector((s) => s.auth);
 
-  const [profileForm, setProfileForm] = useState({ name: "", phone: "" });
-  const [pwForm, setPwForm] = useState({ currentPassword: "", newPassword: "", confirm: "" });
-  const [profileLoading, setProfileLoading] = useState(false);
-  const [pwLoading, setPwLoading] = useState(false);
+  const [passForm, setPassForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+  });
 
   useEffect(() => {
-    if (user) {
-      setProfileForm({ name: user.name || "", phone: user.phone || "" });
+    if (error) {
+      toast.error(error);
+      dispatch(clearError());
     }
-  }, [user]);
+  }, [error, dispatch]);
 
-  const handleProfileUpdate = async (e) => {
-    e.preventDefault();
-    if (!profileForm.name.trim()) { toast.error("Name is required"); return; }
-    setProfileLoading(true);
-    try {
-      await api.patch("/users/me", profileForm);
-      dispatch(getMe());
-      toast.success("Profile updated");
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Update failed");
-    } finally {
-      setProfileLoading(false);
-    }
-  };
+  const handlePassChange = (e) =>
+    setPassForm({ ...passForm, [e.target.name]: e.target.value });
 
-  const handlePasswordChange = async (e) => {
+  const handlePassSubmit = (e) => {
     e.preventDefault();
-    if (pwForm.newPassword !== pwForm.confirm) {
-      toast.error("Passwords do not match");
+    if (!passForm.currentPassword || !passForm.newPassword) {
+      toast.error("Both fields are required");
       return;
     }
-    if (pwForm.newPassword.length < 6) {
+    if (passForm.newPassword.length < 6) {
       toast.error("New password must be at least 6 characters");
       return;
     }
-    setPwLoading(true);
-    try {
-      await api.patch("/auth/update-password", {
-        currentPassword: pwForm.currentPassword,
-        newPassword: pwForm.newPassword,
+    dispatch(updatePassword(passForm))
+      .unwrap()
+      .then(() => {
+        toast.success("Password updated successfully");
+        setPassForm({ currentPassword: "", newPassword: "" });
       });
-      toast.success("Password changed successfully");
-      setPwForm({ currentPassword: "", newPassword: "", confirm: "" });
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to change password");
-    } finally {
-      setPwLoading(false);
-    }
   };
 
-  if (!user) return null;
-
   return (
-    <div className="bg-[#09090b] min-h-screen pt-24 pb-20">
-      <div className="max-w-5xl mx-auto px-6">
-        
-        {/* Header */}
-        <div className="mb-12 border-b border-white/5 pb-8">
-          <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-            <FiSettings className="text-zinc-500" /> Account Settings
-          </h1>
-          <p className="text-zinc-400 mt-2 text-base">Manage your personal information and security preferences</p>
+    <div style={styles.page}>
+      <h1 style={styles.heading}>My Profile</h1>
+
+      <div style={styles.layout}>
+        {/* Profile info card */}
+        <div style={styles.card}>
+          <div style={styles.avatarWrapper}>
+            <div style={styles.avatar}>
+              {user?.name?.charAt(0).toUpperCase()}
+            </div>
+          </div>
+          <h2 style={styles.name}>{user?.name}</h2>
+          <p style={styles.email}>{user?.email}</p>
+          <span
+            style={{
+              ...styles.roleBadge,
+              background: user?.role === "admin" ? "#fef3c7" : "#e0f2fe",
+              color: user?.role === "admin" ? "#92400e" : "#0369a1",
+            }}
+          >
+            {user?.role}
+          </span>
+
+          <div style={styles.divider} />
+
+          <div style={styles.infoRow}>
+            <span style={styles.infoLabel}>Phone</span>
+            <span style={styles.infoValue}>
+              {user?.phone || "Not provided"}
+            </span>
+          </div>
+          <div style={styles.infoRow}>
+            <span style={styles.infoLabel}>Member since</span>
+            <span style={styles.infoValue}>
+              {new Date(user?.createdAt).toLocaleDateString("en-IN", {
+                month: "long",
+                year: "numeric",
+              })}
+            </span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          
-          {/* Left Column: Avatar & Overview */}
-          <div className="md:col-span-1 space-y-6">
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8 text-center">
-              <div className="w-24 h-24 mx-auto rounded-full bg-zinc-800 flex items-center justify-center text-4xl font-bold text-white mb-6">
-                {user.name?.[0]?.toUpperCase()}
-              </div>
-              
-              <div>
-                <h2 className="text-xl font-semibold text-white">{user.name}</h2>
-                <p className="text-zinc-500 text-sm mt-1">{user.email}</p>
-                <div className="mt-4">
-                  <span className="text-xs font-semibold uppercase tracking-wider px-3 py-1 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-lg">
-                    {user.role}
-                  </span>
-                </div>
-              </div>
+        {/* Change password card */}
+        <div style={styles.card}>
+          <h2 style={styles.cardTitle}>Change Password</h2>
+          <form onSubmit={handlePassSubmit} style={styles.form}>
+            <div style={styles.field}>
+              <label style={styles.label}>Current Password</label>
+              <input
+                type="password"
+                name="currentPassword"
+                value={passForm.currentPassword}
+                onChange={handlePassChange}
+                placeholder="••••••••"
+                style={styles.input}
+              />
             </div>
-            
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-4">Security Status</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-400 flex items-center gap-2"><FiLock className="text-zinc-500" /> Password</span>
-                  <span className="text-white font-medium">Secure</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-400 flex items-center gap-2"><FiMail className="text-zinc-500" /> Email</span>
-                  <span className="text-white font-medium">Verified</span>
-                </div>
-              </div>
+            <div style={styles.field}>
+              <label style={styles.label}>New Password</label>
+              <input
+                type="password"
+                name="newPassword"
+                value={passForm.newPassword}
+                onChange={handlePassChange}
+                placeholder="••••••••"
+                style={styles.input}
+              />
             </div>
-          </div>
-
-          {/* Right Column: Forms */}
-          <div className="md:col-span-2 space-y-8">
-            
-            {/* Profile Update Form */}
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8">
-              <h2 className="text-lg font-bold text-white mb-6">Personal Information</h2>
-              
-              <form onSubmit={handleProfileUpdate} className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                      <FiUser className="text-zinc-500" /> Full Name
-                    </label>
-                    <input
-                      type="text"
-                      value={profileForm.name}
-                      onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                      className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-lg px-4 py-2.5 outline-none focus:border-zinc-600 transition-colors"
-                      placeholder="Your full name"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                      <FiPhone className="text-zinc-500" /> Phone <span className="text-zinc-600 text-xs font-normal">(Optional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={profileForm.phone}
-                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                      className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-lg px-4 py-2.5 outline-none focus:border-zinc-600 transition-colors"
-                      placeholder="+91 9876543210"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                    <FiMail className="text-zinc-500" /> Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={user.email}
-                    disabled
-                    className="w-full bg-black border border-white/5 text-zinc-600 rounded-lg px-4 py-2.5 cursor-not-allowed"
-                  />
-                  <p className="text-xs text-zinc-600 mt-1">Email address cannot be changed.</p>
-                </div>
-                
-                <div className="pt-2 flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={profileLoading}
-                    className="bg-white text-black font-semibold px-6 py-2.5 rounded-lg text-sm hover:bg-zinc-200 transition-colors flex items-center gap-2 disabled:opacity-60"
-                  >
-                    <FiSave />
-                    {profileLoading ? "Saving..." : "Save Changes"}
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {/* Change Password */}
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8">
-              <h2 className="text-lg font-bold text-white mb-6">Change Password</h2>
-              
-              <form onSubmit={handlePasswordChange} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">Current Password</label>
-                  <input
-                    type="password"
-                    value={pwForm.currentPassword}
-                    onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })}
-                    placeholder="••••••••"
-                    className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-lg px-4 py-2.5 outline-none focus:border-zinc-600 transition-colors"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">New Password</label>
-                    <input
-                      type="password"
-                      value={pwForm.newPassword}
-                      onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
-                      placeholder="••••••••"
-                      className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-lg px-4 py-2.5 outline-none focus:border-zinc-600 transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">Confirm New Password</label>
-                    <input
-                      type="password"
-                      value={pwForm.confirm}
-                      onChange={(e) => setPwForm({ ...pwForm, confirm: e.target.value })}
-                      placeholder="••••••••"
-                      className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-lg px-4 py-2.5 outline-none focus:border-zinc-600 transition-colors"
-                    />
-                  </div>
-                </div>
-                
-                <div className="pt-2 flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={pwLoading}
-                    className="border border-zinc-800 text-white hover:bg-zinc-800 text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-60"
-                  >
-                    <FiLock />
-                    {pwLoading ? "Updating..." : "Update Password"}
-                  </button>
-                </div>
-              </form>
-            </div>
-
-          </div>
+            <button
+              type="submit"
+              disabled={loading}
+              style={loading ? styles.btnDisabled : styles.btn}
+            >
+              {loading ? "Updating..." : "Update Password"}
+            </button>
+          </form>
         </div>
       </div>
     </div>
   );
+};
+
+const styles = {
+  page: { maxWidth: "900px", margin: "0 auto", padding: "40px 20px" },
+  heading: {
+    fontSize: "28px",
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: "28px",
+  },
+  layout: {
+    display: "flex",
+    gap: "24px",
+    alignItems: "flex-start",
+    flexWrap: "wrap",
+  },
+  card: {
+    flex: 1,
+    minWidth: "280px",
+    background: "#fff",
+    borderRadius: "16px",
+    padding: "28px",
+    boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+  },
+  avatarWrapper: {
+    display: "flex",
+    justifyContent: "center",
+    marginBottom: "16px",
+  },
+  avatar: {
+    width: "72px",
+    height: "72px",
+    borderRadius: "50%",
+    background: "#e94560",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "30px",
+    fontWeight: "700",
+  },
+  name: {
+    textAlign: "center",
+    fontSize: "20px",
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: "4px",
+  },
+  email: {
+    textAlign: "center",
+    fontSize: "14px",
+    color: "#6b7280",
+    marginBottom: "10px",
+  },
+  roleBadge: {
+    display: "block",
+    width: "fit-content",
+    margin: "0 auto",
+    padding: "4px 16px",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: "600",
+    textTransform: "capitalize",
+  },
+  divider: { borderTop: "1px solid #f3f4f6", margin: "20px 0" },
+  infoRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    marginBottom: "12px",
+  },
+  infoLabel: { fontSize: "14px", color: "#9ca3af" },
+  infoValue: { fontSize: "14px", color: "#111827", fontWeight: "500" },
+  cardTitle: {
+    fontSize: "18px",
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: "20px",
+  },
+  form: { display: "flex", flexDirection: "column", gap: "16px" },
+  field: { display: "flex", flexDirection: "column", gap: "6px" },
+  label: { fontSize: "14px", fontWeight: "500", color: "#374151" },
+  input: {
+    padding: "10px 14px",
+    border: "1px solid #d1d5db",
+    borderRadius: "8px",
+    fontSize: "15px",
+    outline: "none",
+  },
+  btn: {
+    padding: "12px",
+    background: "#e94560",
+    color: "#fff",
+    border: "none",
+    borderRadius: "10px",
+    fontSize: "15px",
+    fontWeight: "600",
+    cursor: "pointer",
+  },
+  btnDisabled: {
+    padding: "12px",
+    background: "#f9a8b4",
+    color: "#fff",
+    border: "none",
+    borderRadius: "10px",
+    fontSize: "15px",
+    cursor: "not-allowed",
+  },
 };
 
 export default ProfilePage;
