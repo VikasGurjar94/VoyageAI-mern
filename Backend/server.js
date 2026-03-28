@@ -8,6 +8,7 @@ const { connectDB, sequelize } = require('./config/db');
 require('./models/index'); // load all models and associations
 
 // route imports
+const paymentRoutes = require("./routes/paymentRoutes");
 const authRoutes    = require('./routes/authRoutes');
 const tourRoutes    = require('./routes/tourRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
@@ -31,6 +32,7 @@ app.use('/uploads', express.static('uploads'));
 app.use('/api/auth',     authRoutes);
 app.use('/api/tours',    tourRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use('/api/users',    userRoutes);
 
 // nested route — reviews live under tours

@@ -1,4 +1,5 @@
-const { Booking, Tour, User, Payment } = require('../models/index');
+const sendEmail = require("../utils/sendEmail");
+const { Booking, Tour, User, Payment } = require("../models/index");
 
 // ─── CREATE BOOKING ────────────────────────────────────────
 // POST /api/bookings
@@ -12,14 +13,14 @@ const createBooking = async (req, res, next) => {
     });
     if (!tour) {
       res.status(404);
-      throw new Error('Tour not found or no longer available');
+      throw new Error("Tour not found or no longer available");
     }
 
     // 2. check group size limit
     if (num_people > tour.max_group_size) {
       res.status(400);
       throw new Error(
-        `This tour allows max ${tour.max_group_size} people per booking`
+        `This tour allows max ${tour.max_group_size} people per booking`,
       );
     }
 
@@ -34,14 +35,14 @@ const createBooking = async (req, res, next) => {
       num_people,
       total_price,
       special_requests,
-      status: 'pending',
+      status: "pending",
     });
 
     // 5. return booking with tour details
     const fullBooking = await Booking.findByPk(booking.id, {
       include: [
-        { model: Tour, attributes: ['title', 'destination', 'image'] },
-        { model: User, attributes: ['name', 'email'] },
+        { model: Tour, attributes: ["title", "destination", "image"] },
+        { model: User, attributes: ["name", "email"] },
       ],
     });
 
@@ -58,10 +59,13 @@ const getMyBookings = async (req, res, next) => {
     const bookings = await Booking.findAll({
       where: { user_id: req.user.id }, // only THIS user's bookings
       include: [
-        { model: Tour, attributes: ['title', 'destination', 'image', 'duration_days'] },
-        { model: Payment, attributes: ['status', 'method', 'paid_at'] },
+        {
+          model: Tour,
+          attributes: ["title", "destination", "image", "duration_days"],
+        },
+        { model: Payment, attributes: ["status", "method", "paid_at"] },
       ],
-      order: [['createdAt', 'DESC']],
+      order: [["createdAt", "DESC"]],
     });
 
     res.status(200).json({ success: true, bookings });
@@ -84,11 +88,11 @@ const getAllBookings = async (req, res, next) => {
     const { count, rows: bookings } = await Booking.findAndCountAll({
       where,
       include: [
-        { model: User, attributes: ['name', 'email', 'phone'] },
-        { model: Tour, attributes: ['title', 'destination'] },
-        { model: Payment, attributes: ['status', 'amount'] },
+        { model: User, attributes: ["name", "email", "phone"] },
+        { model: Tour, attributes: ["title", "destination"] },
+        { model: Payment, attributes: ["status", "amount"] },
       ],
-      order: [['createdAt', 'DESC']],
+      order: [["createdAt", "DESC"]],
       limit: parseInt(limit),
       offset: parseInt(offset),
     });
@@ -111,23 +115,20 @@ const getBooking = async (req, res, next) => {
     const booking = await Booking.findByPk(req.params.id, {
       include: [
         { model: Tour },
-        { model: User, attributes: ['name', 'email', 'phone'] },
+        { model: User, attributes: ["name", "email", "phone"] },
         { model: Payment },
       ],
     });
 
     if (!booking) {
       res.status(404);
-      throw new Error('Booking not found');
+      throw new Error("Booking not found");
     }
 
     // user can only see their own booking — admin can see any
-    if (
-      booking.user_id !== req.user.id &&
-      req.user.role !== 'admin'
-    ) {
+    if (booking.user_id !== req.user.id && req.user.role !== "admin") {
       res.status(403);
-      throw new Error('You are not authorized to view this booking');
+      throw new Error("You are not authorized to view this booking");
     }
 
     res.status(200).json({ success: true, booking });
@@ -141,17 +142,17 @@ const getBooking = async (req, res, next) => {
 const updateBookingStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
-    const allowed = ['pending', 'confirmed', 'cancelled'];
+    const allowed = ["pending", "confirmed", "cancelled"];
 
     if (!allowed.includes(status)) {
       res.status(400);
-      throw new Error(`Status must be one of: ${allowed.join(', ')}`);
+      throw new Error(`Status must be one of: ${allowed.join(", ")}`);
     }
 
     const booking = await Booking.findByPk(req.params.id);
     if (!booking) {
       res.status(404);
-      throw new Error('Booking not found');
+      throw new Error("Booking not found");
     }
 
     await booking.update({ status });
@@ -174,25 +175,32 @@ const cancelBooking = async (req, res, next) => {
 
     if (!booking) {
       res.status(404);
-      throw new Error('Booking not found');
+      throw new Error("Booking not found");
     }
 
     // only the booking owner can cancel
     if (booking.user_id !== req.user.id) {
       res.status(403);
-      throw new Error('Not authorized to cancel this booking');
+      throw new Error("Not authorized to cancel this booking");
     }
 
-    if (booking.status === 'cancelled') {
+    if (booking.status === "cancelled") {
       res.status(400);
-      throw new Error('Booking is already cancelled');
+      throw new Error("Booking is already cancelled");
     }
 
-    await booking.update({ status: 'cancelled' });
+    await booking.update({ status: "cancelled" });
+
+    // send cancellation email
+    await sendEmail(booking.User.email, "bookingCancelled", {
+      customerName: booking.User.name,
+      bookingId: booking.id,
+      tourTitle: booking.Tour.title,
+    });
 
     res.status(200).json({
       success: true,
-      message: 'Booking cancelled successfully',
+      message: "Booking cancelled successfully",
     });
   } catch (error) {
     next(error);
@@ -200,6 +208,10 @@ const cancelBooking = async (req, res, next) => {
 };
 
 module.exports = {
-  createBooking, getMyBookings, getAllBookings,
-  getBooking, updateBookingStatus, cancelBooking,
+  createBooking,
+  getMyBookings,
+  getAllBookings,
+  getBooking,
+  updateBookingStatus,
+  cancelBooking,
 };

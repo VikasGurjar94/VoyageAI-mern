@@ -13,6 +13,7 @@ import {
 const MyBookingsPage = () => {
   const dispatch = useDispatch();
   const { bookings, loading } = useSelector((s) => s.bookings);
+  const { token } = useSelector((s) => s.auth);
 
   useEffect(() => {
     dispatch(fetchMyBookings());
@@ -20,9 +21,42 @@ const MyBookingsPage = () => {
 
   const handleCancel = (id) => {
     if (window.confirm("Cancel this booking?")) {
-      dispatch(cancelBooking(id)).then(() =>
-        toast.success("Booking cancelled"),
+      dispatch(cancelBooking(id))
+        .unwrap()
+        .then(() =>
+          toast.success("Booking cancelled. Cancellation email sent."),
+        )
+        .catch((err) => toast.error(err));
+    }
+  };
+
+  // invoice download — calls backend which streams a PDF
+  const handleDownloadInvoice = async (bookingId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/bookings/${bookingId}/invoice`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
       );
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || "Failed to download invoice");
+      }
+
+      // convert response to blob and trigger browser download
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `invoice-booking-${bookingId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast.success("Invoice downloaded!");
+    } catch (err) {
+      toast.error(err.message || "Invoice download failed");
     }
   };
 
@@ -34,6 +68,7 @@ const MyBookingsPage = () => {
 
       {bookings.length === 0 ? (
         <div style={styles.empty}>
+          <p style={styles.emptyIcon}>🗺</p>
           <p style={styles.emptyText}>You have no bookings yet.</p>
           <a href="/tours" style={styles.exploreBtn}>
             Explore Tours
@@ -56,11 +91,16 @@ const MyBookingsPage = () => {
               {/* Booking info */}
               <div style={styles.info}>
                 <div style={styles.infoTop}>
-                  <h3 style={styles.tourTitle}>{booking.Tour?.title}</h3>
+                  <div>
+                    <h3 style={styles.tourTitle}>{booking.Tour?.title}</h3>
+                    <p style={styles.destination}>
+                      📍 {booking.Tour?.destination}
+                    </p>
+                  </div>
                   <span
                     style={{
                       ...styles.statusBadge,
-                      background: getStatusColor(booking.status) + "22",
+                      background: getStatusColor(booking.status) + "20",
                       color: getStatusColor(booking.status),
                     }}
                   >
@@ -68,11 +108,9 @@ const MyBookingsPage = () => {
                   </span>
                 </div>
 
-                <p style={styles.destination}>📍 {booking.Tour?.destination}</p>
-
                 <div style={styles.metaRow}>
                   <span style={styles.meta}>
-                    📅 Travel date: {formatDate(booking.travel_date)}
+                    📅 {formatDate(booking.travel_date)}
                   </span>
                   <span style={styles.meta}>
                     👥 {booking.num_people} person
@@ -81,6 +119,7 @@ const MyBookingsPage = () => {
                   <span style={styles.meta}>
                     🕐 {booking.Tour?.duration_days} days
                   </span>
+                  <span style={styles.meta}>🔖 Booking #{booking.id}</span>
                 </div>
 
                 <div style={styles.cardFooter}>
@@ -88,14 +127,27 @@ const MyBookingsPage = () => {
                     {formatPrice(booking.total_price)}
                   </span>
 
-                  {booking.status === "pending" && (
-                    <button
-                      onClick={() => handleCancel(booking.id)}
-                      style={styles.cancelBtn}
-                    >
-                      Cancel Booking
-                    </button>
-                  )}
+                  <div style={styles.actions}>
+                    {/* Download invoice — only for confirmed bookings */}
+                    {booking.status === "confirmed" && (
+                      <button
+                        onClick={() => handleDownloadInvoice(booking.id)}
+                        style={styles.invoiceBtn}
+                      >
+                        📄 Download Invoice
+                      </button>
+                    )}
+
+                    {/* Cancel — only for pending bookings */}
+                    {booking.status === "pending" && (
+                      <button
+                        onClick={() => handleCancel(booking.id)}
+                        style={styles.cancelBtn}
+                      >
+                        Cancel Booking
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -115,6 +167,7 @@ const styles = {
     marginBottom: "28px",
   },
   empty: { textAlign: "center", padding: "80px 20px" },
+  emptyIcon: { fontSize: "64px", marginBottom: "16px" },
   emptyText: { color: "#9ca3af", fontSize: "18px", marginBottom: "20px" },
   exploreBtn: {
     background: "#e94560",
@@ -132,20 +185,26 @@ const styles = {
     display: "flex",
     boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
   },
-  img: { width: "180px", height: "160px", objectFit: "cover", flexShrink: 0 },
+  img: { width: "180px", height: "180px", objectFit: "cover", flexShrink: 0 },
   info: {
     flex: 1,
     padding: "20px",
     display: "flex",
     flexDirection: "column",
-    gap: "8px",
+    gap: "10px",
   },
   infoTop: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
-  tourTitle: { fontSize: "18px", fontWeight: "700", color: "#111827" },
+  tourTitle: {
+    fontSize: "18px",
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: "4px",
+  },
+  destination: { fontSize: "14px", color: "#6b7280" },
   statusBadge: {
     padding: "4px 12px",
     borderRadius: "20px",
@@ -154,8 +213,7 @@ const styles = {
     textTransform: "capitalize",
     flexShrink: 0,
   },
-  destination: { fontSize: "14px", color: "#6b7280" },
-  metaRow: { display: "flex", gap: "20px", flexWrap: "wrap" },
+  metaRow: { display: "flex", gap: "16px", flexWrap: "wrap" },
   meta: { fontSize: "13px", color: "#6b7280" },
   cardFooter: {
     display: "flex",
@@ -166,8 +224,19 @@ const styles = {
     borderTop: "1px solid #f3f4f6",
   },
   totalPrice: { fontSize: "20px", fontWeight: "800", color: "#e94560" },
+  actions: { display: "flex", gap: "10px", alignItems: "center" },
+  invoiceBtn: {
+    padding: "8px 16px",
+    background: "#eff6ff",
+    color: "#1d4ed8",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "13px",
+    fontWeight: "500",
+  },
   cancelBtn: {
-    padding: "8px 18px",
+    padding: "8px 16px",
     background: "transparent",
     border: "1px solid #e94560",
     color: "#e94560",

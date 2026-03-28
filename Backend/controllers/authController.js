@@ -1,13 +1,14 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { User } = require('../models/index');
+const sendEmail = require("../utils/sendEmail");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { User } = require("../models/index");
 
 // helper — generates a JWT token with user id and role inside
 const generateToken = (id, role) => {
   return jwt.sign(
-    { id, role },                          // payload — data inside the token
-    process.env.JWT_SECRET,                // secret key to sign it
-    { expiresIn: process.env.JWT_EXPIRES_IN } // token expires in 7d
+    { id, role }, // payload — data inside the token
+    process.env.JWT_SECRET, // secret key to sign it
+    { expiresIn: process.env.JWT_EXPIRES_IN }, // token expires in 7d
   );
 };
 
@@ -21,7 +22,7 @@ const register = async (req, res, next) => {
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       res.status(400);
-      throw new Error('Email already registered');
+      throw new Error("Email already registered");
     }
 
     // 2. hash the password — never store plain text
@@ -35,6 +36,8 @@ const register = async (req, res, next) => {
       password: hashedPassword,
       phone,
     });
+    // step 8 of phase 5 for welcome email
+    await sendEmail(user.email, "welcome", user.name);
 
     // 4. generate token
     const token = generateToken(user.id, user.role);
@@ -65,7 +68,7 @@ const login = async (req, res, next) => {
     const user = await User.findOne({ where: { email } });
     if (!user) {
       res.status(401);
-      throw new Error('Invalid email or password');
+      throw new Error("Invalid email or password");
     }
 
     // 2. compare entered password with hashed one in DB
@@ -73,7 +76,7 @@ const login = async (req, res, next) => {
     if (!isMatch) {
       res.status(401);
       // same message intentionally — don't tell attacker which one was wrong
-      throw new Error('Invalid email or password');
+      throw new Error("Invalid email or password");
     }
 
     // 3. generate token
@@ -121,7 +124,7 @@ const updatePassword = async (req, res, next) => {
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       res.status(401);
-      throw new Error('Current password is incorrect');
+      throw new Error("Current password is incorrect");
     }
 
     // hash new password and save
@@ -132,7 +135,7 @@ const updatePassword = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Password updated successfully',
+      message: "Password updated successfully",
       token,
     });
   } catch (error) {
