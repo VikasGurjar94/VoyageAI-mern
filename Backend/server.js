@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const path = require("path"); 
 require('dotenv').config();
 
 const { connectDB, sequelize } = require('./config/db');
@@ -21,12 +22,18 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 
 // ── Global Middleware ─────────────────────────────────────────
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static('uploads'));
+// app.use('/uploads', express.static('uploads'));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 
 // ── Routes ────────────────────────────────────────────────────
 app.use('/api/auth',     authRoutes);

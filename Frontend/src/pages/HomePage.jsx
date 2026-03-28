@@ -7,7 +7,7 @@ import { formatPrice, getImageUrl } from "../utils/helpers";
 const HomePage = () => {
   const dispatch = useDispatch();
   const { tours } = useSelector((s) => s.tours);
-
+ const { user } = useSelector((s) => s.auth); 
   useEffect(() => {
     // fetch latest 6 tours for the featured section
     dispatch(fetchTours({ limit: 6, sort: "price_asc" }));
@@ -30,9 +30,11 @@ const HomePage = () => {
             <Link to="/tours" style={styles.heroBtnPrimary}>
               Explore Tours
             </Link>
-            <Link to="/register" style={styles.heroBtnSecondary}>
-              Join Free
-            </Link>
+            {!user && (
+              <Link to="/register" style={styles.heroBtnSecondary}>
+                Join Free
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -130,14 +132,23 @@ const HomePage = () => {
       </div>
 
       {/* CTA section */}
+      {/* CTA section */}
       <div style={styles.cta}>
         <h2 style={styles.ctaTitle}>Ready to explore?</h2>
         <p style={styles.ctaSub}>
           Join thousands of travellers discovering India with Voyage.
         </p>
-        <Link to="/register" style={styles.ctaBtn}>
-          Get Started — It's Free
-        </Link>
+
+        {/* Show different content based on login state */}
+        {user ? (
+          <Link to="/tours" style={styles.ctaBtn}>
+            Browse All Tours →
+          </Link>
+        ) : (
+          <Link to="/register" style={styles.ctaBtn}>
+            Get Started — It's Free
+          </Link>
+        )}
       </div>
     </div>
   );
