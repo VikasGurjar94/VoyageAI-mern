@@ -15,6 +15,8 @@ const tourRoutes    = require('./routes/tourRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const reviewRoutes  = require('./routes/reviewRoutes');
 const userRoutes    = require('./routes/userRoutes');
+const itineraryRoutes = require("./routes/itineraryRoutes");
+
 
 // error handler
 const errorHandler = require('./middleware/errorHandler');
@@ -41,6 +43,7 @@ app.use('/api/tours',    tourRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use('/api/users',    userRoutes);
+app.use("/api/itineraries", itineraryRoutes);
 
 // nested route — reviews live under tours
 // /api/tours/:tourId/reviews

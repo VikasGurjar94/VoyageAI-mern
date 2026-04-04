@@ -27,6 +27,13 @@ const Navbar = () => {
 
         {user ? (
           <>
+            
+            <Link to="/trip-planner" style={styles.link}>
+              ✨ AI Planner
+            </Link>
+            <Link to="/my-itineraries" style={styles.link}>
+              My Trips
+            </Link>
             <Link to="/my-bookings" style={styles.link}>
               My Bookings
             </Link>

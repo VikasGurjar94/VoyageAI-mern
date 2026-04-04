@@ -1,3 +1,7 @@
+import TripPlannerPage from "./pages/TripPlannerPage";
+import ItineraryDetailPage from "./pages/ItineraryDetailPage";
+import MyItinerariesPage from "./pages/MyItinerariesPage";
+
 import AdminLayout from "./components/common/AdminLayout";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
@@ -84,6 +88,30 @@ function App() {
               <AdminLayout>
                 <ManageBookings />
               </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trip-planner"
+          element={
+            <ProtectedRoute>
+              <TripPlannerPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/itineraries/:id"
+          element={
+            <ProtectedRoute>
+              <ItineraryDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-itineraries"
+          element={
+            <ProtectedRoute>
+              <MyItinerariesPage />
             </ProtectedRoute>
           }
         />
