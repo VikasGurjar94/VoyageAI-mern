@@ -1,11 +1,12 @@
 import TripPlannerPage from "./pages/TripPlannerPage";
 import ItineraryDetailPage from "./pages/ItineraryDetailPage";
 import MyItinerariesPage from "./pages/MyItinerariesPage";
-
+import ItineraryMapPage from "./pages/ItineraryMapPage";
 import AdminLayout from "./components/common/AdminLayout";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "leaflet/dist/leaflet.css";
 
 import Navbar from "./components/common/Navbar";
 import ProtectedRoute from "./components/common/ProtectedRoute";
@@ -48,6 +49,14 @@ function App() {
           element={
             <ProtectedRoute>
               <MyBookingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/itineraries/:id/map"
+          element={
+            <ProtectedRoute>
+              <ItineraryMapPage />
             </ProtectedRoute>
           }
         />

@@ -9,6 +9,7 @@ const { connectDB, sequelize } = require('./config/db');
 require('./models/index'); // load all models and associations
 
 // route imports
+const mapRoutes = require("./routes/mapRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const authRoutes    = require('./routes/authRoutes');
 const tourRoutes    = require('./routes/tourRoutes');
@@ -44,6 +45,8 @@ app.use('/api/bookings', bookingRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use('/api/users',    userRoutes);
 app.use("/api/itineraries", itineraryRoutes);
+app.use("/api/maps", mapRoutes);
+
 
 // nested route — reviews live under tours
 // /api/tours/:tourId/reviews

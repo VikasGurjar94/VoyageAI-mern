@@ -179,6 +179,12 @@ const ItineraryDetailPage = () => {
         </div>
 
         <div style={styles.headerRight}>
+          <button
+            onClick={() => navigate(`/itineraries/${itinerary.id}/map`)}
+            style={styles.mapBtn}
+          >
+            🗺 View on Map
+          </button>
           <button onClick={handleDelete} style={styles.deleteBtn}>
             🗑 Delete
           </button>
@@ -748,6 +754,16 @@ const styles = {
     borderRadius: "8px",
     cursor: "pointer",
     fontWeight: "600",
+    fontSize: "14px",
+  },
+  mapBtn: {
+    background: "#eff6ff",
+    color: "#1d4ed8",
+    border: "none",
+    padding: "10px 18px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontWeight: "500",
     fontSize: "14px",
   },
   cancelEditBtn: {
