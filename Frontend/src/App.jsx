@@ -22,6 +22,7 @@ import ProfilePage from "./pages/ProfilePage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ManageTours from "./pages/admin/ManageTours";
 import ManageBookings from "./pages/admin/ManageBookings";
+import ExpenseTrackerPage from "./pages/ExpenseTrackerPage";
 
 function App() {
   return (
@@ -49,6 +50,14 @@ function App() {
           element={
             <ProtectedRoute>
               <MyBookingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/itineraries/:id/expenses"
+          element={
+            <ProtectedRoute>
+              <ExpenseTrackerPage />
             </ProtectedRoute>
           }
         />

@@ -6,6 +6,7 @@ import reviewReducer from "./slices/reviewSlice";
 import adminReducer from "./slices/adminSlice";
 import itineraryReducer from "./slices/itinerarySlice";
 import mapReducer from "./slices/mapSlice";
+import expenseReducer from "./slices/expenseSlice";
 
 export const store = configureStore({
   reducer: {
@@ -16,5 +17,6 @@ export const store = configureStore({
     admin: adminReducer, // admin dashboard stats, booking management
     itineraries: itineraryReducer,
     map: mapReducer,
+    expenses: expenseReducer,
   },
 });

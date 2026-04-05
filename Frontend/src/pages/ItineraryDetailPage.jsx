@@ -180,6 +180,12 @@ const ItineraryDetailPage = () => {
 
         <div style={styles.headerRight}>
           <button
+            onClick={() => navigate(`/itineraries/${itinerary.id}/expenses`)}
+            style={styles.expenseBtn}
+          >
+            💰 Expense Tracker
+          </button>
+          <button
             onClick={() => navigate(`/itineraries/${itinerary.id}/map`)}
             style={styles.mapBtn}
           >
@@ -773,6 +779,16 @@ const styles = {
     border: "none",
     borderRadius: "8px",
     cursor: "pointer",
+    fontSize: "14px",
+  },
+  expenseBtn: {
+    background: "#f0fdf4",
+    color: "#16a34a",
+    border: "none",
+    padding: "10px 18px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontWeight: "500",
     fontSize: "14px",
   },
 };
