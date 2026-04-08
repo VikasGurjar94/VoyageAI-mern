@@ -7,6 +7,7 @@ const Itinerary = require("./Itinerary");
 const ItineraryDay = require("./ItineraryDay");
 const ItineraryActivity = require("./ItineraryActivity");
 const Expense = require("./Expense");
+const TourItineraryDay = require("./TourItineraryDay");
 
 
 // ── existing associations (keep these) ───────────────────────
@@ -34,6 +35,16 @@ Expense.belongsTo(User, { foreignKey: "user_id" });
 // a user can have many itineraries
 User.hasMany(Itinerary, { foreignKey: "user_id" });
 Itinerary.belongsTo(User, { foreignKey: "user_id" });
+
+Tour.hasMany(TourItineraryDay, {
+  foreignKey: "tour_id",
+  as: "ItineraryDays", // alias used in queries
+  onDelete: "CASCADE",
+  hooks: true,
+});
+TourItineraryDay.belongsTo(Tour, {
+  foreignKey: "tour_id",
+});
 
 // an itinerary has many days — delete days when itinerary deleted
 Itinerary.hasMany(ItineraryDay, {
@@ -68,4 +79,5 @@ module.exports = {
   ItineraryDay,
   ItineraryActivity,
   Expense,
+  TourItineraryDay,
 };

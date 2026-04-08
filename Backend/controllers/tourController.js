@@ -70,18 +70,29 @@ const getAllTours = async (req, res, next) => {
 
 // ─── GET SINGLE TOUR ────────────────────────────────────────
 // GET /api/tours/:id
+// replace the existing getTour function with this
 const getTour = async (req, res, next) => {
   try {
-    const tour = await Tour.findByPk(req.params.id, {
+    const { TourItineraryDay } = require('../models/index');
+
+    const tour = await Tour.findOne({
+      where: {
+        id:        req.params.id,
+        is_active: true,
+      },
       include: [
         {
-          model: Review,
-          include: [
-            {
-              model: User,
-              attributes: ['name', 'avatar'], // reviewer name and photo
-            },
-          ],
+          model:   Review,
+          include: [{
+            model:      User,
+            attributes: ['name', 'avatar'],
+          }],
+          order: [['createdAt', 'DESC']],
+        },
+        {
+          model: TourItineraryDay,
+          as:    'ItineraryDays',
+          order: [['day_number', 'ASC']],
         },
       ],
     });
@@ -91,7 +102,22 @@ const getTour = async (req, res, next) => {
       throw new Error('Tour not found');
     }
 
-    res.status(200).json({ success: true, tour });
+    // calculate average rating
+    const avgRating = tour.Reviews?.length
+      ? (
+          tour.Reviews.reduce((sum, r) => sum + r.rating, 0) /
+          tour.Reviews.length
+        ).toFixed(1)
+      : null;
+
+    res.status(200).json({
+      success: true,
+      tour: {
+        ...tour.toJSON(),
+        avgRating,
+        reviewCount: tour.Reviews?.length || 0,
+      },
+    });
   } catch (error) {
     next(error);
   }
