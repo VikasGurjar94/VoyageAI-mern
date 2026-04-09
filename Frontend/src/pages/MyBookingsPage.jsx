@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchMyBookings, cancelBooking } from "../store/slices/bookingSlice";
 import { toast } from "react-toastify";
 import Loader from "../components/common/Loader";
+
 import {
   formatPrice,
   formatDate,

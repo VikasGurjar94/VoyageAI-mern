@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchTourById } from "../store/slices/tourSlice";
 import { createBooking, clearBookingState } from "../store/slices/bookingSlice";
@@ -10,6 +10,8 @@ import api from "../services/api";
 
 const BookingPage = () => {
   const { tourId } = useParams();
+  const location = useLocation(); // ← add this
+  const passedState = location.state || {};
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -21,8 +23,8 @@ const BookingPage = () => {
   const [step, setStep] = useState(1);
 
   const [form, setForm] = useState({
-    travel_date: "",
-    num_people: 1,
+    travel_date: passedState.selectedDate || "",
+    num_people: passedState.numPeople || 1,
     special_requests: "",
   });
 
