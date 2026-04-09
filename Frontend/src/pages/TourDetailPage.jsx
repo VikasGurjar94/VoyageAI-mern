@@ -520,6 +520,7 @@ const TourDetailPage = () => {
                     width: "100%",
                     height: "420px",
                     borderRadius: "12px",
+                    zIndex: 0,
                   }}
                 >
                   <TileLayer
@@ -1173,7 +1174,13 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
   },
-  mapWrapper: { display: "flex", flexDirection: "column", gap: "14px" },
+  mapWrapper: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+    position: "relative", // ← add this
+    zIndex: 0,
+  },
   mapLegend: { display: "flex", flexWrap: "wrap", gap: "10px" },
   legendItem: {
     display: "flex",
