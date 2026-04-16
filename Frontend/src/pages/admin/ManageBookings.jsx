@@ -126,6 +126,7 @@ const ManageBookings = () => {
                           {b.status}
                         </span>
                       </td>
+                      {/* Find this section and replace it entirely */}
                       <td style={styles.td}>
                         {b.status === "pending" && (
                           <div style={styles.actionBtns}>
@@ -150,15 +151,29 @@ const ManageBookings = () => {
                           </div>
                         )}
                         {b.status === "confirmed" && (
-                          <button
-                            onClick={() =>
-                              handleStatusUpdate(b.id, "cancelled")
-                            }
-                            disabled={updating === b.id}
-                            style={styles.cancelBtn}
-                          >
-                            {updating === b.id ? "..." : "Cancel"}
-                          </button>
+                          <div style={styles.actionBtns}>
+                            <button
+                              onClick={() =>
+                                handleStatusUpdate(b.id, "completed")
+                              }
+                              disabled={updating === b.id}
+                              style={styles.completeBtn}
+                            >
+                              {updating === b.id ? "..." : "✓ Complete"}
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleStatusUpdate(b.id, "cancelled")
+                              }
+                              disabled={updating === b.id}
+                              style={styles.cancelBtn}
+                            >
+                              {updating === b.id ? "..." : "Cancel"}
+                            </button>
+                          </div>
+                        )}
+                        {b.status === "completed" && (
+                          <span style={styles.completedTag}>🎉 Completed</span>
                         )}
                         {b.status === "cancelled" && (
                           <span style={styles.noAction}>—</span>
@@ -338,6 +353,17 @@ const styles = {
     cursor: "not-allowed",
     fontSize: "13px",
   },
+  completeBtn: {
+    background: "#ecfdf5",
+    color: "#059669",
+    border: "none",
+    padding: "6px 12px",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontSize: "13px",
+    fontWeight: "500",
+  },
+  completedTag: { fontSize: "13px", color: "#059669", fontWeight: "500" },
 };
 
 export default ManageBookings;

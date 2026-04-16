@@ -36,7 +36,37 @@ const makeIcon = (color) =>
     iconAnchor: [14, 28],
     popupAnchor:[0, -30],
   });
+// separate icon for nearby places — teal/green so it's clearly different
+const makeNearbyIcon = (type) => {
+  const typeColors = {
+    restaurant: '#f59e0b',
+    cafe:       '#a16207',
+    hotel:      '#7c3aed',
+    atm:        '#059669',
+    attraction: '#0891b2',
+    pharmacy:   '#dc2626',
+    shopping:   '#db2777',
+    transport:  '#64748b',
+  };
+  const color = typeColors[type] || '#0891b2';
 
+  return L.divIcon({
+    className: '',
+    html: `
+      <div style="
+        width:26px;height:26px;border-radius:4px;
+        background:${color};border:2px solid #fff;
+        display:flex;align-items:center;justify-content:center;
+        box-shadow:0 2px 6px rgba(0,0,0,0.3);
+      ">
+        <div style="width:8px;height:8px;background:#fff;border-radius:50%"></div>
+      </div>
+    `,
+    iconSize:    [26, 26],
+    iconAnchor:  [13, 13],
+    popupAnchor: [0, -16],
+  });
+};
 const categoryColors = {
   sightseeing: '#3b82f6', food: '#f59e0b', adventure: '#10b981',
   transport:   '#8b5cf6', accommodation: '#ec4899', shopping: '#f97316',
@@ -68,19 +98,23 @@ const FitBounds = ({ positions }) => {
 };
 
 const ItineraryMapPage = () => {
-  const { id }       = useParams();
-  const dispatch     = useDispatch();
-  const navigate     = useNavigate();
+  const { id } = useParams();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const { itinerary, loading: itiLoading } = useSelector((s) => s.itineraries);
   const {
-    markers, nearbyPlaces, selectedMarker,
-    loading: geoLoading, nearbyLoading, nearbyType,
+    markers,
+    nearbyPlaces,
+    selectedMarker,
+    loading: geoLoading,
+    nearbyLoading,
+    nearbyType,
   } = useSelector((s) => s.map);
 
-  const [activeDay,     setActiveDay]     = useState('all');
-  const [showNearby,    setShowNearby]    = useState(false);
-  const [nearbyCenter,  setNearbyCenter]  = useState(null);
+  const [activeDay, setActiveDay] = useState("all");
+  const [showNearby, setShowNearby] = useState(false);
+  const [nearbyCenter, setNearbyCenter] = useState(null);
 
   useEffect(() => {
     dispatch(fetchItinerary(id));
@@ -88,10 +122,10 @@ const ItineraryMapPage = () => {
   }, [id, dispatch]);
 
   // once itinerary is loaded — geocode all activity locations
+  // FIND this useEffect and replace it completely
   useEffect(() => {
-    if (!itinerary) return;
+    if (!itinerary || itinerary.id !== parseInt(id)) return; // ← add this guard
 
-    // collect unique non-empty locations from all activities
     const allLocations = [];
     const seen = new Set();
 
@@ -99,7 +133,6 @@ const ItineraryMapPage = () => {
       day.ItineraryActivities?.forEach((act) => {
         if (act.location && !seen.has(act.location)) {
           seen.add(act.location);
-          // append destination for better geocoding accuracy
           allLocations.push({
             location: `${act.location}, ${itinerary.destination}`,
             activityId: act.id,
@@ -112,17 +145,24 @@ const ItineraryMapPage = () => {
       });
     });
 
-    if (allLocations.length > 0) {
-      // only send location strings to backend
-      dispatch(geocodeLocations(allLocations.map((l) => l.location)))
-        .unwrap()
-        .then((results) => {
-          // enrich geocoded results with activity metadata
-          toast.success(`${results.filter(r => r.found).length} locations mapped`);
-        })
-        .catch(() => toast.error('Some locations could not be mapped'));
-    }
-  }, [itinerary, dispatch]);
+    if (allLocations.length === 0) return; // ← don't dispatch if no locations
+
+    dispatch(geocodeLocations(allLocations.map((l) => l.location)))
+      .unwrap()
+      .then((results) => {
+        const found = results.filter((r) => r.found).length;
+        if (found > 0) {
+          toast.success(`${found} location${found > 1 ? "s" : ""} mapped`, {
+            toastId: `map-${id}`, // ← unique ID prevents duplicate toasts
+          });
+        }
+      })
+      .catch(() =>
+        toast.error("Some locations could not be mapped", {
+          toastId: `map-err-${id}`,
+        }),
+      );
+  }, [itinerary?.id]); // ← only re-run when the itinerary ID actually changes
 
   if (itiLoading || geoLoading) {
     return <Loader message="Loading map..." />;
@@ -140,7 +180,7 @@ const ItineraryMapPage = () => {
         allActivities.push({
           ...act,
           dayNumber: day.day_number,
-          dayTheme:  day.theme,
+          dayTheme: day.theme,
         });
       }
     });
@@ -149,17 +189,20 @@ const ItineraryMapPage = () => {
   // enrich markers with activity data
   const enrichedMarkers = markers.map((m) => {
     // match marker back to activity by location string
-    const locationBase = m.location.replace(`, ${itinerary.destination}`, '');
+    const locationBase = m.location.replace(`, ${itinerary.destination}`, "");
     const activity = allActivities.find(
-      (a) => a.location && m.location.includes(a.location)
+      (a) => a.location && m.location.includes(a.location),
     );
     return { ...m, activity, locationBase };
   });
 
   // filter by active day
-  const visibleMarkers = activeDay === 'all'
-    ? enrichedMarkers
-    : enrichedMarkers.filter((m) => m.activity?.dayNumber === parseInt(activeDay));
+  const visibleMarkers =
+    activeDay === "all"
+      ? enrichedMarkers
+      : enrichedMarkers.filter(
+          (m) => m.activity?.dayNumber === parseInt(activeDay),
+        );
 
   const positions = visibleMarkers.map((m) => [m.lat, m.lng]);
   const centerPos = positions.length > 0 ? positions[0] : [20.5937, 78.9629]; // India center
@@ -171,24 +214,58 @@ const ItineraryMapPage = () => {
 
   const handleFetchNearby = (type) => {
     if (!nearbyCenter) {
-      toast.info('Click a marker first to find nearby places');
+      toast.info("Click a marker first to find nearby places");
       return;
     }
     dispatch(setNearbyType(type));
-    dispatch(fetchNearbyPlaces({
-      lat: nearbyCenter.lat,
-      lng: nearbyCenter.lng,
-      type,
-    }));
-    setShowNearby(true);
+    dispatch(
+      fetchNearbyPlaces({
+        lat: nearbyCenter.lat,
+        lng: nearbyCenter.lng,
+        type,
+      }),
+    )
+      .unwrap()
+      .then((data) => {
+        if (data.places.length === 0) {
+          toast.info(`No ${type}s found within 1km of this location`);
+        }
+        setShowNearby(true);
+      })
+      .catch((err) => {
+        // show the real backend error message
+        toast.error(
+          err ||
+            "Map service is currently unavailable. Please try again later.",
+        );
+        setShowNearby(false);
+      });
   };
+
+  // Add this right inside the component, before the return
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.textContent = `
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+  `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
 
   return (
     <div style={styles.page}>
-
       {/* Header */}
       <div style={styles.header}>
-        <button onClick={() => navigate(`/itineraries/${id}`)} style={styles.backBtn}>
+        <button
+          onClick={() => navigate(`/itineraries/${id}`)}
+          style={styles.backBtn}
+        >
           ← Back to Itinerary
         </button>
         <div>
@@ -200,17 +277,17 @@ const ItineraryMapPage = () => {
       </div>
 
       <div style={styles.layout}>
-
         {/* Left — controls + nearby panel */}
         <div style={styles.leftPanel}>
-
           {/* Day filter */}
           <div style={styles.panel}>
             <h3 style={styles.panelTitle}>Filter by Day</h3>
             <div style={styles.dayBtns}>
               <button
-                onClick={() => setActiveDay('all')}
-                style={activeDay === 'all' ? styles.dayBtnActive : styles.dayBtn}
+                onClick={() => setActiveDay("all")}
+                style={
+                  activeDay === "all" ? styles.dayBtnActive : styles.dayBtn
+                }
               >
                 All Days
               </button>
@@ -237,6 +314,7 @@ const ItineraryMapPage = () => {
               <span style={styles.panelHint}>Click a marker first</span>
             </h3>
             <div style={styles.nearbyTypes}>
+              {/* FIND nearbyTypes buttons and update */}
               {nearbyTypes.map(({ value, label }) => (
                 <button
                   key={value}
@@ -247,9 +325,17 @@ const ItineraryMapPage = () => {
                     ...(nearbyType === value && showNearby
                       ? styles.nearbyTypeBtnActive
                       : {}),
+                    ...(nearbyLoading && nearbyType === value
+                      ? {
+                          animation: "pulse 1s ease infinite",
+                        }
+                      : {}),
+                    cursor: nearbyLoading ? "wait" : "pointer",
                   }}
                 >
-                  {label}
+                  {nearbyLoading && nearbyType === value
+                    ? `Searching...`
+                    : label}
                 </button>
               ))}
             </div>
@@ -262,16 +348,21 @@ const ItineraryMapPage = () => {
               <div style={styles.selectedInfo}>
                 {selectedMarker.activity && (
                   <>
-                    <span style={{
-                      ...styles.categoryDot,
-                      background: categoryColors[selectedMarker.activity.category] || '#6b7280',
-                    }} />
+                    <span
+                      style={{
+                        ...styles.categoryDot,
+                        background:
+                          categoryColors[selectedMarker.activity.category] ||
+                          "#6b7280",
+                      }}
+                    />
                     <div>
                       <p style={styles.selectedName}>
                         {selectedMarker.activity.activity}
                       </p>
                       <p style={styles.selectedMeta}>
-                        Day {selectedMarker.activity.dayNumber} · {selectedMarker.activity.time}
+                        Day {selectedMarker.activity.dayNumber} ·{" "}
+                        {selectedMarker.activity.time}
                       </p>
                       <p style={styles.selectedLocation}>
                         📍 {selectedMarker.locationBase}
@@ -288,7 +379,8 @@ const ItineraryMapPage = () => {
             <div style={styles.nearbyPanel}>
               <div style={styles.nearbyHeader}>
                 <h3 style={styles.panelTitle}>
-                  Nearby {nearbyTypes.find(t => t.value === nearbyType)?.label}
+                  Nearby{" "}
+                  {nearbyTypes.find((t) => t.value === nearbyType)?.label}
                 </h3>
                 <button
                   onClick={() => setShowNearby(false)}
@@ -299,9 +391,29 @@ const ItineraryMapPage = () => {
               </div>
 
               {nearbyLoading ? (
-                <p style={styles.loadingText}>Finding places...</p>
+                <div style={styles.nearbyLoadingBox}>
+                  <div style={styles.nearbySpinner} />
+                  <p style={styles.loadingText}>
+                    Searching for{" "}
+                    {nearbyTypes
+                      .find((t) => t.value === nearbyType)
+                      ?.label.toLowerCase()}
+                    ...
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "11px",
+                      color: "#9ca3af",
+                      textAlign: "center",
+                    }}
+                  >
+                    Querying OpenStreetMap data
+                  </p>
+                </div>
               ) : nearbyPlaces.length === 0 ? (
-                <p style={styles.noPlaces}>No places found nearby.</p>
+                <p style={styles.noPlaces}>
+                  No {nearbyType}s found within 1km of this location.
+                </p>
               ) : (
                 <div style={styles.placesList}>
                   {nearbyPlaces.map((place) => (
@@ -339,7 +451,7 @@ const ItineraryMapPage = () => {
           <MapContainer
             center={centerPos}
             zoom={12}
-            style={{ width: '100%', height: '100%' }}
+            style={{ width: "100%", height: "100%" }}
           >
             {/* OpenStreetMap tiles — completely free */}
             <TileLayer
@@ -353,8 +465,8 @@ const ItineraryMapPage = () => {
             {/* Activity markers */}
             {visibleMarkers.map((marker, index) => {
               const color = marker.activity
-                ? categoryColors[marker.activity.category] || '#e94560'
-                : '#e94560';
+                ? categoryColors[marker.activity.category] || "#e94560"
+                : "#e94560";
 
               return (
                 <Marker
@@ -370,7 +482,8 @@ const ItineraryMapPage = () => {
                       {marker.activity && (
                         <>
                           <p style={styles.popupDay}>
-                            Day {marker.activity.dayNumber} · {marker.activity.time}
+                            Day {marker.activity.dayNumber} ·{" "}
+                            {marker.activity.time}
                           </p>
                           <p style={styles.popupName}>
                             {marker.activity.activity}
@@ -379,7 +492,10 @@ const ItineraryMapPage = () => {
                             📍 {marker.locationBase}
                           </p>
                           <p style={styles.popupCost}>
-                            ₹{Number(marker.activity.estimated_cost).toLocaleString('en-IN')}
+                            ₹
+                            {Number(
+                              marker.activity.estimated_cost,
+                            ).toLocaleString("en-IN")}
                           </p>
                           {marker.activity.tips && (
                             <p style={styles.popupTip}>
@@ -406,94 +522,297 @@ const ItineraryMapPage = () => {
             )}
 
             {/* Nearby place markers (blue) */}
-            {showNearby && nearbyPlaces.map((place) => (
-              <Marker
-                key={place.id}
-                position={[place.lat, place.lng]}
-                icon={makeIcon('#3b82f6')}
-              >
-                <Popup>
-                  <div style={styles.popup}>
-                    <p style={styles.popupName}>{place.name}</p>
-                    {place.address && (
-                      <p style={styles.popupLocation}>📍 {place.address}</p>
-                    )}
-                    {place.cuisine && (
-                      <p style={styles.popupTip}>🍴 {place.cuisine}</p>
-                    )}
-                    {place.opening && (
-                      <p style={styles.popupTip}>🕐 {place.opening}</p>
-                    )}
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+            {showNearby &&
+              nearbyPlaces.map((place) => (
+                <Marker
+                  key={place.id}
+                  position={[place.lat, place.lng]}
+                  icon={makeNearbyIcon(nearbyType)} // ← this uses the same icon
+                >
+                  <Popup>
+                    <div style={styles.popup}>
+                      <p style={styles.popupName}>{place.name}</p>
+                      {place.address && (
+                        <p style={styles.popupLocation}>📍 {place.address}</p>
+                      )}
+                      {place.cuisine && (
+                        <p style={styles.popupTip}>🍴 {place.cuisine}</p>
+                      )}
+                      {place.opening && (
+                        <p style={styles.popupTip}>🕐 {place.opening}</p>
+                      )}
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
           </MapContainer>
 
           {/* Map legend */}
+          {/* FIND the legend and replace with */}
           <div style={styles.legend}>
-            {Object.entries(categoryColors).slice(0, 5).map(([cat, color]) => (
-              <div key={cat} style={styles.legendItem}>
-                <span style={{ ...styles.legendDot, background: color }} />
-                <span style={styles.legendText}>{cat}</span>
-              </div>
-            ))}
             <div style={styles.legendItem}>
-              <span style={{ ...styles.legendDot, background: '#3b82f6' }} />
-              <span style={styles.legendText}>nearby</span>
+              <div
+                style={{
+                  ...styles.legendDot,
+                  background: "#1a1a2e",
+                  borderRadius: "50%",
+                }}
+              >
+                1
+              </div>
+              <span style={styles.legendText}>Day stops</span>
+            </div>
+            <div style={styles.legendItem}>
+              <div
+                style={{
+                  ...styles.legendDot,
+                  background: "#f59e0b",
+                  borderRadius: "4px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    background: "#fff",
+                    borderRadius: "50%",
+                  }}
+                />
+              </div>
+              <span style={styles.legendText}>Nearby places</span>
             </div>
           </div>
         </div>
       </div>
     </div>
   );
-};
+};;
 
 const styles = {
-  page:              { maxWidth: '1400px', margin: '0 auto', padding: '24px 20px' },
-  notFound:          { textAlign: 'center', padding: '80px', color: '#6b7280' },
-  header:            { display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '20px' },
-  backBtn:           { background: 'none', border: '1px solid #e5e7eb', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', whiteSpace: 'nowrap', color: '#374151' },
-  heading:           { fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '4px' },
-  sub:               { color: '#6b7280', fontSize: '14px' },
-  layout:            { display: 'flex', gap: '16px', height: '75vh' },
-  leftPanel:         { width: '280px', flexShrink: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' },
-  panel:             { background: '#fff', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' },
-  panelTitle:        { fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  panelHint:         { fontSize: '11px', color: '#9ca3af', fontWeight: '400' },
-  dayBtns:           { display: 'flex', flexWrap: 'wrap', gap: '6px' },
-  dayBtn:            { padding: '5px 12px', border: '1px solid #e5e7eb', borderRadius: '20px', background: '#f9fafb', cursor: 'pointer', fontSize: '12px', color: '#374151' },
-  dayBtnActive:      { padding: '5px 12px', border: '1px solid #e94560', borderRadius: '20px', background: '#e94560', cursor: 'pointer', fontSize: '12px', color: '#fff' },
-  nearbyTypes:       { display: 'flex', flexWrap: 'wrap', gap: '6px' },
-  nearbyTypeBtn:     { padding: '5px 10px', border: '1px solid #e5e7eb', borderRadius: '20px', background: '#f9fafb', cursor: 'pointer', fontSize: '12px', color: '#374151' },
-  nearbyTypeBtnActive:{ padding: '5px 10px', border: '1px solid #3b82f6', borderRadius: '20px', background: '#eff6ff', cursor: 'pointer', fontSize: '12px', color: '#1d4ed8', fontWeight: '600' },
-  selectedInfo:      { display: 'flex', gap: '10px', alignItems: 'flex-start' },
-  categoryDot:       { width: '12px', height: '12px', borderRadius: '50%', flexShrink: 0, marginTop: '4px' },
-  selectedName:      { fontSize: '13px', fontWeight: '600', color: '#111827', marginBottom: '2px' },
-  selectedMeta:      { fontSize: '12px', color: '#6b7280', marginBottom: '2px' },
-  selectedLocation:  { fontSize: '12px', color: '#6b7280' },
-  nearbyPanel:       { background: '#fff', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', flex: 1 },
-  nearbyHeader:      { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' },
-  closePanelBtn:     { background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '16px' },
-  loadingText:       { color: '#9ca3af', fontSize: '13px', textAlign: 'center', padding: '16px 0' },
-  noPlaces:          { color: '#9ca3af', fontSize: '13px', textAlign: 'center', padding: '16px 0' },
-  placesList:        { display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto' },
-  placeCard:         { background: '#f9fafb', borderRadius: '8px', padding: '12px' },
-  placeName:         { fontSize: '13px', fontWeight: '600', color: '#111827', marginBottom: '4px' },
-  placeAddress:      { fontSize: '12px', color: '#6b7280', marginBottom: '2px' },
-  placeDetail:       { fontSize: '12px', color: '#6b7280', marginBottom: '2px' },
-  placeLink:         { fontSize: '12px', color: '#3b82f6', textDecoration: 'none' },
-  mapWrapper:        { flex: 1, borderRadius: '16px', overflow: 'hidden', position: 'relative', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' },
-  legend:            { position: 'absolute', bottom: '16px', right: '16px', background: 'rgba(255,255,255,0.95)', borderRadius: '10px', padding: '10px 14px', display: 'flex', flexWrap: 'wrap', gap: '8px', maxWidth: '200px', zIndex: 1000, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' },
-  legendItem:        { display: 'flex', alignItems: 'center', gap: '5px' },
-  legendDot:         { width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0 },
-  legendText:        { fontSize: '11px', color: '#374151', textTransform: 'capitalize' },
-  popup:             { minWidth: '160px' },
-  popupDay:          { fontSize: '11px', color: '#9ca3af', marginBottom: '4px' },
-  popupName:         { fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '4px' },
-  popupLocation:     { fontSize: '12px', color: '#6b7280', marginBottom: '4px' },
-  popupCost:         { fontSize: '13px', fontWeight: '700', color: '#e94560', marginBottom: '6px' },
-  popupTip:          { fontSize: '12px', color: '#92400e', background: '#fffbeb', padding: '6px 8px', borderRadius: '6px' },
+  page: { maxWidth: "1400px", margin: "0 auto", padding: "24px 20px" },
+  notFound: { textAlign: "center", padding: "80px", color: "#6b7280" },
+  header: {
+    display: "flex",
+    alignItems: "center",
+    gap: "20px",
+    marginBottom: "20px",
+  },
+  backBtn: {
+    background: "none",
+    border: "1px solid #e5e7eb",
+    padding: "8px 16px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "14px",
+    whiteSpace: "nowrap",
+    color: "#374151",
+  },
+  nearbyLoadingBox: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    padding: "20px 0",
+    gap: "10px",
+  },
+  nearbySpinner: {
+    width: "28px",
+    height: "28px",
+    border: "3px solid #e5e7eb",
+    borderTop: "3px solid #3b82f6",
+    borderRadius: "50%",
+    animation: "spin 0.8s linear infinite",
+  },
+  heading: {
+    fontSize: "22px",
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: "4px",
+  },
+  sub: { color: "#6b7280", fontSize: "14px" },
+  layout: { display: "flex", gap: "16px", height: "75vh" },
+  leftPanel: {
+    width: "280px",
+    flexShrink: 0,
+    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  },
+  panel: {
+    background: "#fff",
+    borderRadius: "12px",
+    padding: "16px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+  },
+  panelTitle: {
+    fontSize: "14px",
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: "10px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  panelHint: { fontSize: "11px", color: "#9ca3af", fontWeight: "400" },
+  dayBtns: { display: "flex", flexWrap: "wrap", gap: "6px" },
+  dayBtn: {
+    padding: "5px 12px",
+    border: "1px solid #e5e7eb",
+    borderRadius: "20px",
+    background: "#f9fafb",
+    cursor: "pointer",
+    fontSize: "12px",
+    color: "#374151",
+  },
+  dayBtnActive: {
+    padding: "5px 12px",
+    border: "1px solid #e94560",
+    borderRadius: "20px",
+    background: "#e94560",
+    cursor: "pointer",
+    fontSize: "12px",
+    color: "#fff",
+  },
+  nearbyTypes: { display: "flex", flexWrap: "wrap", gap: "6px" },
+  nearbyTypeBtn: {
+    padding: "5px 10px",
+    border: "1px solid #e5e7eb",
+    borderRadius: "20px",
+    background: "#f9fafb",
+    cursor: "pointer",
+    fontSize: "12px",
+    color: "#374151",
+  },
+  nearbyTypeBtnActive: {
+    padding: "5px 10px",
+    border: "1px solid #3b82f6",
+    borderRadius: "20px",
+    background: "#eff6ff",
+    cursor: "pointer",
+    fontSize: "12px",
+    color: "#1d4ed8",
+    fontWeight: "600",
+  },
+  selectedInfo: { display: "flex", gap: "10px", alignItems: "flex-start" },
+  categoryDot: {
+    width: "12px",
+    height: "12px",
+    borderRadius: "50%",
+    flexShrink: 0,
+    marginTop: "4px",
+  },
+  selectedName: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: "2px",
+  },
+  selectedMeta: { fontSize: "12px", color: "#6b7280", marginBottom: "2px" },
+  selectedLocation: { fontSize: "12px", color: "#6b7280" },
+  nearbyPanel: {
+    background: "#fff",
+    borderRadius: "12px",
+    padding: "16px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+    flex: 1,
+  },
+  nearbyHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "12px",
+  },
+  closePanelBtn: {
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    color: "#9ca3af",
+    fontSize: "16px",
+  },
+  loadingText: {
+    color: "#9ca3af",
+    fontSize: "13px",
+    textAlign: "center",
+    padding: "16px 0",
+  },
+  noPlaces: {
+    color: "#9ca3af",
+    fontSize: "13px",
+    textAlign: "center",
+    padding: "16px 0",
+  },
+  placesList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    maxHeight: "300px",
+    overflowY: "auto",
+  },
+  placeCard: { background: "#f9fafb", borderRadius: "8px", padding: "12px" },
+  placeName: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: "4px",
+  },
+  placeAddress: { fontSize: "12px", color: "#6b7280", marginBottom: "2px" },
+  placeDetail: { fontSize: "12px", color: "#6b7280", marginBottom: "2px" },
+  placeLink: { fontSize: "12px", color: "#3b82f6", textDecoration: "none" },
+  mapWrapper: {
+    flex: 1,
+    borderRadius: "16px",
+    overflow: "hidden",
+    position: "relative",
+    boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+  },
+  legend: {
+    position: "absolute",
+    bottom: "16px",
+    right: "16px",
+    background: "rgba(255,255,255,0.95)",
+    borderRadius: "10px",
+    padding: "10px 14px",
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "8px",
+    maxWidth: "200px",
+    zIndex: 1000,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+  },
+  legendItem: { display: "flex", alignItems: "center", gap: "5px" },
+  legendDot: {
+    width: "10px",
+    height: "10px",
+    borderRadius: "50%",
+    flexShrink: 0,
+  },
+  legendText: {
+    fontSize: "11px",
+    color: "#374151",
+    textTransform: "capitalize",
+  },
+  popup: { minWidth: "160px" },
+  popupDay: { fontSize: "11px", color: "#9ca3af", marginBottom: "4px" },
+  popupName: {
+    fontSize: "14px",
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: "4px",
+  },
+  popupLocation: { fontSize: "12px", color: "#6b7280", marginBottom: "4px" },
+  popupCost: {
+    fontSize: "13px",
+    fontWeight: "700",
+    color: "#e94560",
+    marginBottom: "6px",
+  },
+  popupTip: {
+    fontSize: "12px",
+    color: "#92400e",
+    background: "#fffbeb",
+    padding: "6px 8px",
+    borderRadius: "6px",
+  },
 };
 
 export default ItineraryMapPage;

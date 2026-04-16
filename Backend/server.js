@@ -70,6 +70,40 @@ app.use((req, res, next) => {
 // ── Global Error Handler (must be LAST) ───────────────────────
 app.use(errorHandler);
 
+
+
+// ── Auto-complete bookings whose travel date has passed ───────
+// runs every 24 hours
+const autoCompleteBookings = async () => {
+  try {
+    const { Booking } = require('./models/index');
+    const { Op }      = require('sequelize');
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const updated = await Booking.update(
+      { status: 'completed' },
+      {
+        where: {
+          status:      'confirmed',
+          travel_date: { [Op.lt]: today }, // travel date is in the past
+        },
+      }
+    );
+
+    if (updated[0] > 0) {
+      console.log(`Auto-completed ${updated[0]} booking(s)`);
+    }
+  } catch (err) {
+    console.error('Auto-complete job failed:', err.message);
+  }
+};
+
+// run once on server start + every 24 hours
+if (process.env.NODE_ENV !== 'test') {
+  autoCompleteBookings();
+  setInterval(autoCompleteBookings, 24 * 60 * 60 * 1000);
+}
 // ── Start Server ──────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 

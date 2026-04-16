@@ -209,7 +209,36 @@ const nearby = async (req, res, next) => {
 
     res.status(200).json({ success: true, places });
   } catch (error) {
-    next(error);
+    // distinguish between different failure types
+    if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
+      res.status(504);
+      return next(
+        new Error(
+          "Overpass API timed out. The map server is taking too long to respond. Try again in a moment.",
+        ),
+      );
+    }
+    if (error.response?.status === 429) {
+      res.status(429);
+      return next(
+        new Error(
+          "Too many requests to the map server. Please wait 30 seconds and try again.",
+        ),
+      );
+    }
+    if (error.code === "ENOTFOUND" || error.code === "ECONNREFUSED") {
+      res.status(503);
+      return next(
+        new Error(
+          "Map data server is currently unreachable. Please check your internet connection.",
+        ),
+      );
+    }
+    next(
+      new Error(
+        `Map service error: ${error.message || "Unknown error occurred"}`,
+      ),
+    );
   }
 };
 

@@ -4,6 +4,8 @@ import { updatePassword, clearError } from "../store/slices/authSlice";
 import { toast } from "react-toastify";
 import api from "../services/api";
 
+import { getMe } from "../store/slices/authSlice";
+
 const ProfilePage = () => {
   const dispatch = useDispatch();
   const { user, loading, error } = useSelector((s) => s.auth);
@@ -12,6 +14,10 @@ const ProfilePage = () => {
     currentPassword: "",
     newPassword: "",
   });
+
+  useEffect(() => {
+    dispatch(getMe());
+  }, [dispatch]);
 
   useEffect(() => {
     if (error) {
@@ -67,19 +73,43 @@ const ProfilePage = () => {
 
           <div style={styles.divider} />
 
+          {/* Profile info rows */}
           <div style={styles.infoRow}>
             <span style={styles.infoLabel}>Phone</span>
             <span style={styles.infoValue}>
-              {user?.phone || "Not provided"}
+              {user?.phone ? user.phone : "Not provided"}
             </span>
           </div>
+
+          <div style={styles.infoRow}>
+            <span style={styles.infoLabel}>Email</span>
+            <span style={styles.infoValue}>{user?.email}</span>
+          </div>
+
+          <div style={styles.infoRow}>
+            <span style={styles.infoLabel}>Role</span>
+            <span
+              style={{
+                ...styles.infoValue,
+                color: user?.role === "admin" ? "#d97706" : "#2563eb",
+                fontWeight: "700",
+                textTransform: "capitalize",
+              }}
+            >
+              {user?.role}
+            </span>
+          </div>
+
           <div style={styles.infoRow}>
             <span style={styles.infoLabel}>Member since</span>
             <span style={styles.infoValue}>
-              {new Date(user?.createdAt).toLocaleDateString("en-IN", {
-                month: "long",
-                year: "numeric",
-              })}
+              {user?.createdAt
+                ? new Date(user.createdAt).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })
+                : "N/A"}
             </span>
           </div>
         </div>

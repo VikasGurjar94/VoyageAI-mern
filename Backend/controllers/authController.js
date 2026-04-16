@@ -51,6 +51,8 @@ const register = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        phone: user.phone || null, // ← add
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
@@ -90,6 +92,8 @@ const login = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        phone: user.phone || null, // ← add
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
@@ -101,11 +105,12 @@ const login = async (req, res, next) => {
 // GET /api/auth/me  (protected route)
 const getMe = async (req, res, next) => {
   try {
-    // req.user is attached by the protect middleware
-    res.status(200).json({
-      success: true,
-      user: req.user,
+    // fetch fresh user from DB with all fields
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ["password"] },
     });
+
+    res.status(200).json({ success: true, user });
   } catch (error) {
     next(error);
   }

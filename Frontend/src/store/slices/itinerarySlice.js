@@ -9,9 +9,12 @@ export const generateItinerary = createAsyncThunk(
       const { data } = await api.post("/itineraries/generate", formData);
       return data;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to generate itinerary",
-      );
+      // extract the most meaningful error message
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to generate itinerary. Please try again.";
+      return rejectWithValue(msg);
     }
   },
 );

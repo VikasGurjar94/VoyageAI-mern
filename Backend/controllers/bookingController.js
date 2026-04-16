@@ -142,7 +142,7 @@ const getBooking = async (req, res, next) => {
 const updateBookingStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
-    const allowed = ["pending", "confirmed", "cancelled"];
+    const allowed = ["pending", "confirmed", "cancelled" , "completed"];
 
     if (!allowed.includes(status)) {
       res.status(400);

@@ -18,12 +18,14 @@ const createReview = async (req, res, next) => {
       where: {
         user_id: req.user.id,
         tour_id,
-        status: 'confirmed', // must be confirmed, not just pending
+        status: 'completed', // must be confirmed, not just pending
       },
     });
     if (!booking) {
       res.status(403);
-      throw new Error('You can only review tours you have completed');
+      throw new Error(
+        "You can only review tours you have completed. Your booking must be marked as completed first.",
+      );
     }
 
     // check user hasn't already reviewed this tour

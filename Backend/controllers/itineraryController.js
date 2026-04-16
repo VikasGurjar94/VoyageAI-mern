@@ -1,3 +1,4 @@
+
 const {
   Itinerary,
   ItineraryDay,
@@ -6,6 +7,19 @@ const {
 } = require("../models/index");
 const { generateItinerary } = require("../services/aiService");
 const { sequelize } = require("../config/db");
+
+
+// Add this helper at the top of the file
+const VALID_CATEGORIES = [
+  'sightseeing', 'food', 'adventure', 'transport',
+  'accommodation', 'shopping', 'relaxation', 'culture',
+];
+
+const sanitizeCategory = (cat) => {
+  if (!cat) return 'sightseeing';
+  const lower = cat.toLowerCase().trim();
+  return VALID_CATEGORIES.includes(lower) ? lower : 'sightseeing';
+};
 
 // ── GENERATE + SAVE AI ITINERARY ──────────────────────────────
 // POST /api/itineraries/generate
@@ -81,14 +95,14 @@ const generate = async (req, res, next) => {
         // 3. create activities for this day
         const activities = dayData.activities.map((act) => ({
           day_id: newDay.id,
-          time: act.time,
-          activity: act.activity,
-          description: act.description,
-          category: act.category,
-          location: act.location,
-          estimated_cost: act.estimated_cost,
-          duration_minutes: act.duration_minutes,
-          tips: act.tips,
+          time: act.time || "09:00 AM",
+          activity: act.activity || "Activity",
+          description: act.description || "",
+          category: sanitizeCategory(act.category), // ← sanitize
+          location: act.location || "",
+          estimated_cost: parseFloat(act.estimated_cost) || 0,
+          duration_minutes: act.duration_minutes || 60,
+          tips: act.tips || "",
           sort_order: act.sort_order || 0,
         }));
 
@@ -110,10 +124,49 @@ const generate = async (req, res, next) => {
 
     res.status(201).json({ success: true, itinerary: full });
   } catch (error) {
-    // handle JSON parse error from AI response
     if (error instanceof SyntaxError) {
       res.status(500);
-      return next(new Error("AI returned invalid response. Please try again."));
+      return next(
+        new Error(
+          "AI returned an invalid response. Please try generating again.",
+        ),
+      );
+    }
+    if (
+      error.message?.includes("API_KEY") ||
+      error.message?.includes("api key")
+    ) {
+      res.status(500);
+      return next(
+        new Error("AI service configuration error. Please contact support."),
+      );
+    }
+    if (error.message?.includes("quota") || error.message?.includes("limit")) {
+      res.status(429);
+      return next(
+        new Error(
+          "AI service quota exceeded. Please try again after a few minutes.",
+        ),
+      );
+    }
+    if (
+      error.message?.includes("truncated") ||
+      error.message?.includes("Data too long")
+    ) {
+      res.status(500);
+      return next(
+        new Error(
+          "AI generated invalid data. Please try again with different inputs.",
+        ),
+      );
+    }
+    if (error.status === 503 || error.message?.includes("overloaded")) {
+      res.status(503);
+      return next(
+        new Error(
+          "AI service is temporarily unavailable. Please try again in a moment.",
+        ),
+      );
     }
     next(error);
   }
