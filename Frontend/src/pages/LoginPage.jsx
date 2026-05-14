@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { login, clearError } from "../store/slices/authSlice";
+import { login } from "../store/slices/authSlice";
 import { toast } from "react-toastify";
 
 const LoginPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error, token } = useSelector((state) => state.auth);
+  const { loading, token } = useSelector((state) => state.auth);
 
   const [form, setForm] = useState({ email: "", password: "" });
 
@@ -16,25 +16,23 @@ const LoginPage = () => {
     if (token) navigate("/");
   }, [token, navigate]);
 
-  // show error toast when error changes
-  useEffect(() => {
-    if (error) {
-      toast.error(error);
-      dispatch(clearError());
-    }
-  }, [error, dispatch]);
-
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.email || !form.password) {
       toast.error("Please fill in all fields");
       return;
     }
-    dispatch(login(form));
+    try {
+      await dispatch(login(form)).unwrap();
+      // success — the useEffect above will redirect via token change
+    } catch (err) {
+      // err is the rejectWithValue payload (the error message string)
+      toast.error(err || "Invalid email or password");
+    }
   };
 
   return (

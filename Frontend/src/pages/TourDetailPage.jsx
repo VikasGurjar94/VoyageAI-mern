@@ -10,6 +10,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import { fetchTourById, clearTour } from "../store/slices/tourSlice";
+import { fetchReviews, clearReviewState } from "../store/slices/reviewSlice";
 import { formatPrice, getImageUrl, formatDate } from "../utils/helpers";
 import Loader from "../components/common/Loader";
 import api from "../services/api";
@@ -120,6 +121,7 @@ const TourDetailPage = () => {
   const navigate = useNavigate();
   const { tour, loading } = useSelector((s) => s.tours);
   const { user } = useSelector((s) => s.auth);
+  const { reviews, loading: reviewLoading } = useSelector((s) => s.reviews);
 
   const [itineraryDays, setItineraryDays] = useState([]);
   const [geoMarkers, setGeoMarkers] = useState([]);
@@ -137,7 +139,11 @@ const TourDetailPage = () => {
 
   useEffect(() => {
     dispatch(fetchTourById(id));
-    return () => dispatch(clearTour());
+    dispatch(fetchReviews(id));
+    return () => {
+      dispatch(clearTour());
+      dispatch(clearReviewState());
+    };
   }, [id, dispatch]);
 
   // fetch itinerary days separately
@@ -626,13 +632,17 @@ const TourDetailPage = () => {
               </div>
             </div>
 
-            {!tour.Reviews || tour.Reviews.length === 0 ? (
+            {reviewLoading ? (
+              <div style={styles.noReviews}>
+                <p style={{ color: "#6b7280" }}>Loading reviews...</p>
+              </div>
+            ) : !reviews || reviews.length === 0 ? (
               <div style={styles.noReviews}>
                 <p>No reviews yet. Be the first to review this tour!</p>
               </div>
             ) : (
               <div style={styles.reviewsList}>
-                {tour.Reviews.map((review) => (
+                {reviews.map((review) => (
                   <div key={review.id} style={styles.reviewCard}>
                     <div style={styles.reviewTop}>
                       <div style={styles.reviewAvatar}>

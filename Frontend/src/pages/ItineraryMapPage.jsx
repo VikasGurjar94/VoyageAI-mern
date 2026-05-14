@@ -116,15 +116,33 @@ const ItineraryMapPage = () => {
   const [showNearby, setShowNearby] = useState(false);
   const [nearbyCenter, setNearbyCenter] = useState(null);
 
+  // Inject required keyframe animations for the map/nearby panel
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.textContent = `
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+  `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+
   useEffect(() => {
     dispatch(fetchItinerary(id));
     return () => dispatch(clearMapState());
   }, [id, dispatch]);
 
+  const fetchedRef = useRef(null);
+
   // once itinerary is loaded — geocode all activity locations
-  // FIND this useEffect and replace it completely
   useEffect(() => {
-    if (!itinerary || itinerary.id !== parseInt(id)) return; // ← add this guard
+    if (!itinerary || itinerary.id !== parseInt(id)) return;
+    if (fetchedRef.current === id) return; // prevent strict mode double-dispatch to avoid API rate limit (429)
 
     const allLocations = [];
     const seen = new Set();
@@ -145,7 +163,9 @@ const ItineraryMapPage = () => {
       });
     });
 
-    if (allLocations.length === 0) return; // ← don't dispatch if no locations
+    if (allLocations.length === 0) return;
+
+    fetchedRef.current = id;
 
     dispatch(geocodeLocations(allLocations.map((l) => l.location)))
       .unwrap()
@@ -153,7 +173,7 @@ const ItineraryMapPage = () => {
         const found = results.filter((r) => r.found).length;
         if (found > 0) {
           toast.success(`${found} location${found > 1 ? "s" : ""} mapped`, {
-            toastId: `map-${id}`, // ← unique ID prevents duplicate toasts
+            toastId: `map-${id}`,
           });
         }
       })
@@ -162,7 +182,7 @@ const ItineraryMapPage = () => {
           toastId: `map-err-${id}`,
         }),
       );
-  }, [itinerary?.id]); // ← only re-run when the itinerary ID actually changes
+  }, [itinerary?.id, id, dispatch]);
 
   if (itiLoading || geoLoading) {
     return <Loader message="Loading map..." />;
@@ -204,7 +224,9 @@ const ItineraryMapPage = () => {
           (m) => m.activity?.dayNumber === parseInt(activeDay),
         );
 
-  const positions = visibleMarkers.map((m) => [m.lat, m.lng]);
+  const positions = visibleMarkers
+                      .filter(m => m.lat !== undefined && m.lng !== undefined && !isNaN(m.lat) && !isNaN(m.lng))
+                      .map((m) => [m.lat, m.lng]);
   const centerPos = positions.length > 0 ? positions[0] : [20.5937, 78.9629]; // India center
 
   const handleMarkerClick = (marker) => {
@@ -241,22 +263,6 @@ const ItineraryMapPage = () => {
         setShowNearby(false);
       });
   };
-
-  // Add this right inside the component, before the return
-  useEffect(() => {
-    const style = document.createElement("style");
-    style.textContent = `
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-  `;
-    document.head.appendChild(style);
-    return () => document.head.removeChild(style);
-  }, []);
 
   return (
     <div style={styles.page}>
