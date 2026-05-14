@@ -71,8 +71,9 @@ const MyBookingsPage = () => {
 
   const handleDownloadInvoice = async (bookingId) => {
     try {
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const response = await fetch(
-        `http://localhost:5000/api/bookings/${bookingId}/invoice`,
+        `${API_BASE}/bookings/${bookingId}/invoice`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (!response.ok) throw new Error("Failed to download");

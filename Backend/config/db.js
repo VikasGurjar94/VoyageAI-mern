@@ -10,6 +10,15 @@ const sequelize = new Sequelize(
     dialect: 'mysql',
     port: process.env.DB_PORT,
     logging: false, // set to console.log to see SQL queries
+    // SSL is required for cloud DBs (Aiven) in production, not needed locally
+    ...(process.env.NODE_ENV === 'production' && {
+      dialectOptions: {
+        ssl: {
+          require: true,
+          rejectUnauthorized: false, // needed for Aiven free tier self-signed cert
+        },
+      },
+    }),
     pool: {
       max: 5,
       min: 0,

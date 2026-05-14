@@ -196,8 +196,9 @@ const ExpenseTrackerPage = () => {
   const handleExportCSV = async () => {
     setDownloading(true);
     try {
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const response = await fetch(
-        `http://localhost:5000/api/expenses/itinerary/${id}/export`,
+        `${API_BASE}/expenses/itinerary/${id}/export`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (!response.ok) throw new Error("Export failed");

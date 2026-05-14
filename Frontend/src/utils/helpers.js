@@ -19,13 +19,14 @@ export const formatDate = (dateStr) => {
 // formatDate("2025-06-15") → "15 June 2025"
 
 // Get full image URL from filename
+const SERVER_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 export const getImageUrl = (filename) => {
   if (!filename) return "/placeholder.jpg";
   // if it's already a full URL return as is
   if (filename.startsWith("http")) return filename;
-  return `http://localhost:5000/uploads/${filename}`;
+  return `${SERVER_BASE}/uploads/${filename}`;
 };
-// getImageUrl("image-123.jpg") → "http://localhost:5000/uploads/image-123.jpg"
+// getImageUrl("image-123.jpg") → "<SERVER_BASE>/uploads/image-123.jpg"
 
 // Get status badge color
 export const getStatusColor = (status) => {
