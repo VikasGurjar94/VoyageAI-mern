@@ -1,5 +1,3 @@
-const Anthropic = require('@anthropic-ai/sdk');
-
 // ── Build a detailed prompt from user inputs ──────────────────
 const buildItineraryPrompt = (inputs) => {
   const { destination, days, budget, travelers, interests, travel_style } =
@@ -51,19 +49,31 @@ Category must be one of: sightseeing, food, adventure, transport, accommodation,
 Respond ONLY with the JSON object. No extra text before or after.`;
 };
 
-// ── Main function — generates itinerary using Anthropic Claude ──
+// ── Main function — generates itinerary using Groq (free, globally accessible) ──
 const generateItinerary = async (inputs) => {
   const prompt = buildItineraryPrompt(inputs);
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-  const message = await client.messages.create({
-    model: 'claude-3-haiku-20240307', // fast + affordable model
-    max_tokens: 4096,
-    messages: [{ role: 'user', content: prompt }],
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile', // free, fast, globally accessible
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 4096,
+      temperature: 0.7,
+    }),
   });
 
-  const rawText = message.content[0].text;
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Groq API error: ${JSON.stringify(error)}`);
+  }
+
+  const data = await response.json();
+  const rawText = data.choices[0].message.content;
 
   // Strip markdown fences if present
   const cleaned = rawText
