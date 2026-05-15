@@ -1,6 +1,11 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
+// Detect if connecting to Aiven cloud DB (requires SSL)
+const isAiven = (process.env.DB_HOST || '').includes('aivencloud.com');
+// Always parse port as a number; fallback to 3306 if not set
+const DB_PORT = parseInt(process.env.DB_PORT, 10) || 3306;
+
 const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
@@ -8,14 +13,14 @@ const sequelize = new Sequelize(
   {
     host: process.env.DB_HOST,
     dialect: 'mysql',
-    port: process.env.DB_PORT,
-    logging: false, // set to console.log to see SQL queries
-    // SSL is required for cloud DBs (Aiven) in production, not needed locally
-    ...(process.env.NODE_ENV === 'production' && {
+    port: DB_PORT,
+    logging: false,
+    // SSL is required for Aiven cloud MySQL (self-signed cert)
+    ...(isAiven && {
       dialectOptions: {
         ssl: {
           require: true,
-          rejectUnauthorized: false, // needed for Aiven free tier self-signed cert
+          rejectUnauthorized: false,
         },
       },
     }),
@@ -30,9 +35,9 @@ const sequelize = new Sequelize(
 
 const connectDB = async () => {
   try {
-    console.log(`Connecting to MySQL at ${process.env.DB_HOST}:${process.env.DB_PORT} DB=${process.env.DB_NAME} USER=${process.env.DB_USER}`);
+    console.log(`Connecting to MySQL at ${process.env.DB_HOST}:${DB_PORT} DB=${process.env.DB_NAME} USER=${process.env.DB_USER} SSL=${isAiven}`);
     await sequelize.authenticate();
-    console.log('MySQL connected successfully');
+    console.log('MySQL connected successfully ✅');
   } catch (error) {
     console.error('Unable to connect to MySQL:');
     console.error('  Message:', error.message);
