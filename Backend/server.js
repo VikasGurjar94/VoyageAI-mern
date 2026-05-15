@@ -71,24 +71,6 @@ app.get('/', (req, res) => {
   res.json({ message: 'Tours & Travel API is running' });
 });
 
-// ── TEMPORARY: one-time admin setup route — DELETE AFTER USE ──
-// Call: POST /api/make-admin  body: { email, secret }
-app.post('/api/make-admin', async (req, res) => {
-  const { email, secret } = req.body;
-  if (secret !== 'VOYAGEAI_SETUP_2025') {
-    return res.status(403).json({ error: 'Invalid secret' });
-  }
-  try {
-    const { User } = require('./models/index');
-    const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(404).json({ error: `User not found: ${email}` });
-    await user.update({ role: 'admin' });
-    res.json({ success: true, message: `${email} is now admin`, role: user.role });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-// ── END TEMPORARY ROUTE ──────────────────────────────────────
 
 // 404 handler — catches any route that doesn't exist
 app.use((req, res, next) => {
