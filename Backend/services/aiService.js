@@ -1,3 +1,5 @@
+const Anthropic = require('@anthropic-ai/sdk');
+
 // ── Build a detailed prompt from user inputs ──────────────────
 const buildItineraryPrompt = (inputs) => {
   const { destination, days, budget, travelers, interests, travel_style } =
@@ -49,41 +51,24 @@ Category must be one of: sightseeing, food, adventure, transport, accommodation,
 Respond ONLY with the JSON object. No extra text before or after.`;
 };
 
-// ── Main function — generates itinerary using Gemini REST API ──
+// ── Main function — generates itinerary using Anthropic Claude ──
 const generateItinerary = async (inputs) => {
   const prompt = buildItineraryPrompt(inputs);
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: prompt }],
-          },
-        ],
-      }),
-    },
-  );
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`Gemini API error: ${JSON.stringify(error)}`);
-  }
+  const message = await client.messages.create({
+    model: 'claude-3-haiku-20240307', // fast + affordable model
+    max_tokens: 4096,
+    messages: [{ role: 'user', content: prompt }],
+  });
 
-  const data = await response.json();
-
-  // Extract text from Gemini's response structure
-  const rawText = data.candidates[0].content.parts[0].text;
+  const rawText = message.content[0].text;
 
   // Strip markdown fences if present
   const cleaned = rawText
-    .replace(/```json\n?/g, "")
-    .replace(/```\n?/g, "")
+    .replace(/```json\n?/g, '')
+    .replace(/```\n?/g, '')
     .trim();
 
   const parsed = JSON.parse(cleaned);

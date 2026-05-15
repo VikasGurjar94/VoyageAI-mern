@@ -1,5 +1,6 @@
 const { Tour, Review, User } = require('../models/index');
 const { Op } = require('sequelize'); // Op = operators for WHERE clauses
+const { uploadToCloudinary } = require('../config/cloudinary');
 
 // ─── GET ALL TOURS ─────────────────────────────────────────
 // GET /api/tours
@@ -132,8 +133,11 @@ const createTour = async (req, res, next) => {
       price, duration_days, max_group_size, difficulty,
     } = req.body;
 
-    // if admin uploaded an image, multer puts it in req.file
-    const image = req.file ? req.file.filename : null;
+    // if admin uploaded an image, upload buffer to Cloudinary → get persistent URL
+    let image = null;
+    if (req.file) {
+      image = await uploadToCloudinary(req.file.buffer);
+    }
 
     const tour = await Tour.create({
       title,
@@ -163,8 +167,11 @@ const updateTour = async (req, res, next) => {
       throw new Error('Tour not found');
     }
 
-    // if new image uploaded, use it — otherwise keep old one
-    const image = req.file ? req.file.filename : tour.image;
+    // if new image uploaded, upload to Cloudinary — otherwise keep existing
+    let image = tour.image;
+    if (req.file) {
+      image = await uploadToCloudinary(req.file.buffer);
+    }
 
     await tour.update({ ...req.body, image });
 

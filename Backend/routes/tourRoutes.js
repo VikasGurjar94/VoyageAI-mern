@@ -12,17 +12,9 @@ const validate = require('../middleware/validate');
 const router = express.Router();
 
 // ── Multer config for image uploads ──────────────────────────
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // save files in uploads/ folder
-  },
-  filename: (req, file, cb) => {
-    // unique filename = fieldname + timestamp + original extension
-    // e.g. image-1704067200000.jpg
-    const ext = path.extname(file.originalname);
-    cb(null, `${file.fieldname}-${Date.now()}${ext}`);
-  },
-});
+// Use memoryStorage so the file is kept as a buffer in RAM
+// then we stream it to Cloudinary (no local disk involved)
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   // only accept images
