@@ -11,7 +11,7 @@ A comprehensive, full-stack web application designed to simplify and enhance the
 <!-- Replace the image link below with a screenshot of your application -->
 <div align="center">
   <img src="./Frontend/src/assets/images/readmeimg.png" width="100%">
-  <p><em>(Add a screenshot of the main dashboard or homepage here)</em></p>
+  <p>Screenshot of live project</p>
 </div>
 
 ---
